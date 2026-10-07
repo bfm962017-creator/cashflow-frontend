@@ -4,6 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cashflow</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#2196f3">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Cashflow">
 <style>
 :root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mut:#6b7280;--bd:#e3e6ea;--pri:#2457d6;--in:#12805c;--out:#c2362b;--inb:#e3f5ee;--outb:#fbe9e7;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -87,7 +95,7 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[];
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null;
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
 var esc=function(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/"/g,'&quot;')};
 var ymd=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -118,7 +126,9 @@ async function api(m,u,b){
 function signout(){token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs}
 async function reload(){await load();render()}
+function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 async function init(){
+  app.addEventListener('click',function(e){if(e.target.id!=='inst'||!inst)return;var p=inst;inst=null;p.prompt();p.userChoice.finally(function(){refresh()})});
   app.addEventListener('input',function(e){var m={f_date:'date',f_time:'time',f_amt:'amount',f_notes:'notes',f_desc:'desc'}[e.target.id];if(form&&m)form[m]=e.target.value});
   try{needsSetup=(await api('GET','/bootstrap')).needsSetup}catch(e){app.innerHTML='<div class="card ctr"><h2>Cannot reach server</h2><p class="err">'+esc(e.message)+'</p></div>';return}
   token=sget();
@@ -149,7 +159,7 @@ function seterr(m){err=m;var e=document.getElementById('e');if(e)e.textContent=m
 function viewLogin(){
   app.innerHTML='<div class="card ctr"><h1>Cashflow</h1><p class="mut">Sign in to continue</p>'+
   '<input id="l_n" placeholder="Username" autocapitalize="none"><input id="l_p" type="password" placeholder="Password">'+
-  '<div class="err" id="e">'+esc(err)+'</div><button class="p" id="go" style="width:100%">Sign in</button></div>';
+  '<div class="err" id="e">'+esc(err)+'</div><button class="p" id="go" style="width:100%">Sign in</button>'+(inst?'<div style="margin-top:10px">'+instBtn('')+'</div>':'')+'</div>';
   var go=async function(){
     var n=uname(document.getElementById('l_n').value),p=document.getElementById('l_p').value;
     try{var r=await api('POST','/login',{username:n,password:p});token=r.token;sset(token);err='';await load();tab='tx';render()}catch(e){seterr(e.message)}
@@ -161,7 +171,7 @@ function viewLogin(){
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['users','Users']);
-  var h='<div class="hdr"><div class="ht"><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div><button class="gh" id="out">Sign out</button></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+  var h='<div class="hdr"><div class="ht"><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div><div style="display:flex;gap:6px">'+instBtn('gh')+'<button class="gh" id="out">Sign out</button></div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
   h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):usersHtml())+'</div>';
   app.innerHTML=h;
   bind(admin);
@@ -293,6 +303,10 @@ function bind(admin){
   $('[data-du]').forEach(function(b){b.onclick=async function(){var k=b.dataset.du;if(confirm('Delete user "'+k+'"? Their entries are kept.')){try{await api('DELETE','/users/'+encodeURIComponent(k));if(fuser===k)fuser='all';await reload()}catch(e){alert(e.message)}}}});
   $('[data-rp]').forEach(function(b){b.onclick=async function(){var k=b.dataset.rp,p=prompt('New password for '+k+' (min 6 chars)');if(!p||p.length<6)return;try{await api('PUT','/users/'+encodeURIComponent(k)+'/password',{password:p});alert('Password updated')}catch(e){alert(e.message)}}});
 }
+
+window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;refresh()});
+window.addEventListener('appinstalled',function(){inst=null;refresh()});
+if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 
 init();
 })();
