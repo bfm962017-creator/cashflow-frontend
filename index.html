@@ -183,7 +183,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,fromBooks=false,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -219,7 +219,7 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;fromBooks=false;fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -493,7 +493,6 @@ function txHtml(admin){
   var h='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
   if(showQ)h+='<div class="pad" style="padding-bottom:0"><input id="q" placeholder="Search notes, amount, user" value="'+esc(q)+'"></div>';
   if(admin)h+='<div class="pad" style="padding-bottom:0"><select id="e_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></div>';
-  if(admin&&fuser!=='all')h+='<div class="pad" style="padding-bottom:0"><div class="card row" style="margin:0;justify-content:space-between;flex-wrap:nowrap">'+(fromBooks?'<button class="sm" data-back="1" style="flex:none">← Users</button>':'')+'<span style="flex:1">Cashbook of <b>'+esc(fuser)+'</b></span>'+(fromBooks?'':'<button class="sm" data-all="1" style="flex:none">Show all</button>')+'</div></div>';
   h+='<div class="ch"><span>Date</span><span class="in">Cash In</span><span class="out">Cash Out</span></div>';
   if(!list.length)h+='<p class="mut pad">No entries found.</p>';
   var last='';
@@ -677,20 +676,18 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;if(fromBooks){fromBooks=false;fuser='all'}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
-  $('[data-t]').forEach(function(b){b.onclick=function(){if(fromBooks){fromBooks=false;fuser='all'}tab=b.dataset.t;err='';render()}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
   if(G('q'))G('q').oninput=function(e){q=e.target.value;focusQ=true;render()};
-  if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;fromBooks=false;render()};
+  if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
   $('[data-rg]').forEach(function(b){b.onclick=function(){range=b.dataset.rg;render()}});
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
-  $('[data-vu]').forEach(function(b){b.onclick=function(){fromBooks=tab==='books';fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
-  $('[data-all]').forEach(function(b){b.onclick=function(){fuser='all';render()}});
-  $('[data-back]').forEach(function(b){b.onclick=function(){fuser='all';fromBooks=false;tab='books';render();window.scrollTo(0,0)}});
+  $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
   $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||''};err='';render()}}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
