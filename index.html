@@ -161,6 +161,18 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 span.ib{background:transparent;border:0}
 .sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:640px;z-index:21;background:var(--card);border-radius:16px 16px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(0,0,0,.2);animation:sup .2s ease-out}
 @keyframes sup{from{transform:translate(-50%,100%)}}
+.hlogo{width:34px;height:34px;border-radius:8px;object-fit:contain;background:#fff;flex:none}
+.ht>div:first-child>div{display:flex;flex-direction:column}.ht>div:first-child{min-width:0}.ht b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:60vw}
+textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);margin-bottom:10px;resize:vertical}
+.lgo{display:flex;gap:14px;align-items:center;margin-bottom:16px}.lgp{width:84px;height:84px;flex:none;border-radius:16px;border:1px dashed var(--bd);background:var(--bg);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.lgp img{width:100%;height:100%;object-fit:contain;background:#fff}.lgp span{font-size:32px;font-weight:700;color:var(--mut)}
+.lgb{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.lgb small{flex-basis:100%}
+.btn{display:inline-block;cursor:pointer;border:1px solid var(--bd);padding:9px 14px;border-radius:8px}.btn.p{background:var(--pri);border-color:var(--pri);color:#fff}
+.ok{color:var(--in);font-size:13px;min-height:0}.ok:empty{display:none}.ok{margin-bottom:8px}
+.exs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}.exs div{background:var(--bg);border-radius:10px;padding:8px}.exs small{display:block;color:var(--mut);font-size:11px}.exs b{font-size:13px;white-space:nowrap}
+.bbtn .gpdf{background:#c2362b}.bbtn .gxls{background:#12805c}.bbtn button:disabled{opacity:.5}
+.row2>div{min-width:0}.row2 input[type=date]{min-width:0;width:100%}
+.lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .dempty{text-align:center;padding:28px 16px}.dempty b{font-size:16px}.dempty .mut{margin:6px 0 14px}
 </style>
 </head>
@@ -170,12 +182,14 @@ span.ib{background:transparent;border:0}
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
   {id:'dash',icon:'📊',label:'Dashboard'},
-  {id:'users',icon:'👥',label:'Users',admin:true}
+  {id:'users',icon:'👥',label:'Users',admin:true},
+  {id:'export',icon:'📤',label:'Export PDF / Excel'},
+  {id:'settings',icon:'⚙️',label:'Business settings',admin:true}
 ];
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
 var esc=function(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/"/g,'&quot;')};
@@ -192,7 +206,7 @@ var tm=function(t){return t.time||(t.ts?hhmm(new Date(t.ts)):'')};
 var fn=function(n){return Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})};
 var cmp=function(a,b){return (a.date||'').localeCompare(b.date||'')||tm(a).localeCompare(tm(b))||(a.ts||0)-(b.ts||0)};
 var newForm=function(ty){return {type:ty,date:today(),time:hhmm(new Date()),amount:'',notes:'',desc:''}};
-var refresh=function(){if(form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;render()};
+var refresh=function(){if(form||sheet||bdirty)return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&app.contains(a))return;render()};
 var rid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
 var uname=function(s){return String(s||'').trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'')};
 
@@ -204,8 +218,9 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;sheet=null;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
-async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0)}
+function signout(){menu=false;sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
+  biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 async function init(){
@@ -215,7 +230,7 @@ async function init(){
   token=sget();
   if(token&&!needsSetup){try{await load()}catch(e){token=null;sset(null)}}
   render();
-  setInterval(function(){if(!token||form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(function(){if(!form)render()}).catch(function(){})},20000);
+  setInterval(function(){if(!token||form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
 }
 
 function render(){
@@ -252,8 +267,8 @@ function viewLogin(){
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];
-  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):usersHtml())+'</div>';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -283,12 +298,13 @@ function actText(a){
     case 'user_add':return a.owner===me?who+' created your account':who+' created user <b>'+esc(a.owner)+'</b>';
     case 'user_password':return a.owner===me?who+' reset your password':who+' reset <b>'+esc(a.owner)+'</b>\'s password';
     case 'user_delete':return who+' deleted user <b>'+esc(a.owner)+'</b>';
+    case 'settings':return who+' updated business settings';
   }
   return who+' made a change';
 }
 function actIcon(a){
   if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
-  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑']}[a.action]||['','•'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],settings:['','⚙']}[a.action]||['','•'];
 }
 function notifHtml(){
   var an=menuAnim?' an':'';menuAnim=false;
@@ -490,6 +506,138 @@ function txHtml(admin){
   return h;
 }
 
+// ---- Business settings (admin) ----
+// Name, address and logo are shared by everyone and printed on PDF / Excel exports.
+// bform holds the unsaved edits while the settings screen is open.
+function settingsHtml(){
+  if(!bform)bform={name:biz.name||'',address:biz.address||'',logo:bizLogo};
+  var f=bform;
+  return '<div class="uhd"><div><h2 style="margin:0">Business settings</h2><small class="mut">Shown in the app and on PDF / Excel exports</small></div></div>'+
+  '<div class="card"><label class="fl">Logo</label><div class="lgo"><div class="lgp">'+(f.logo?'<img src="'+f.logo+'" alt="Business logo">':'<span>'+esc((f.name||'B').charAt(0).toUpperCase())+'</span>')+'</div>'+
+  '<div class="lgb"><label class="btn p">'+(f.logo?'Change logo':'Upload logo')+'<input id="b_logo" type="file" accept="image/png,image/jpeg,image/webp" hidden></label>'+(f.logo?'<button id="b_rm">Remove</button>':'')+'<small class="mut">PNG or JPG. Square works best.</small></div></div>'+
+  '<label class="fl" for="b_name">Business name</label><input id="b_name" maxlength="80" placeholder="e.g. Sharma Traders" value="'+esc(f.name)+'">'+
+  '<label class="fl" for="b_addr">Business address</label><textarea id="b_addr" maxlength="300" rows="3" placeholder="Shop no., street, city, PIN">'+esc(f.address)+'</textarea>'+
+  '<div class="err" id="e">'+esc(err)+'</div><div class="ok" id="b_ok"></div><button class="p" id="b_save" style="width:100%">Save settings</button></div>';
+}
+// Shrink the chosen image to at most 320px so it stays small; PNG keeps transparency, JPEG if PNG is too big.
+function readLogo(file){return new Promise(function(ok,no){
+  var r=new FileReader();r.onerror=function(){no(new Error('Could not read that file'))};
+  r.onload=function(){var im=new Image();im.onerror=function(){no(new Error('That file is not an image'))};im.onload=function(){
+    var k=Math.min(1,320/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(im.width*k));c.height=Math.max(1,Math.round(im.height*k));
+    var x=c.getContext('2d');x.drawImage(im,0,0,c.width,c.height);var d=c.toDataURL('image/png');
+    if(d.length>380000){x.globalCompositeOperation='destination-over';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);d=c.toDataURL('image/jpeg',.85)}
+    ok(d)};im.src=r.result};r.readAsDataURL(file)})}
+function bindSettings(){
+  var G=function(i){return document.getElementById(i)};if(!G('b_save'))return;
+  G('b_name').oninput=function(e){bform.name=e.target.value;bdirty=true};
+  G('b_addr').oninput=function(e){bform.address=e.target.value;bdirty=true};
+  G('b_logo').onchange=async function(e){var f=e.target.files[0];if(!f)return;try{bform.logo=await readLogo(f);bdirty=true;err='';render()}catch(x){seterr(x.message)}};
+  if(G('b_rm'))G('b_rm').onclick=function(){bform.logo=null;bdirty=true;render()};
+  G('b_save').onclick=async function(){
+    var b=this;b.disabled=true;b.textContent='Saving…';
+    try{var r=await api('PUT','/settings',{name:bform.name,address:bform.address,logo:bform.logo||''});
+      biz=r;bizLogo=r.logo||null;bizV=r.v;bform=null;bdirty=false;err='';await load();render();var ok=G('b_ok');if(ok)ok.textContent='Saved ✓'}
+    catch(x){b.disabled=false;b.textContent='Save settings';seterr(x.message)}
+  };
+}
+function bizHead(){return (bizLogo?'<img class="hlogo" src="'+bizLogo+'" alt="">':'')+'<div><b>'+esc(biz.name||'Cashflow')+'</b>'}
+
+// ---- Export: PDF / Excel statement for a date range ----
+// Libraries load from the CDN only when an export is made.
+var LIBS={pdf:['https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js'],xls:['https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js']},loaded={};
+function loadJs(u){return loaded[u]||(loaded[u]=new Promise(function(ok,no){var s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=function(){delete loaded[u];no(new Error('Could not load the export tool. Check your internet connection.'))};document.head.appendChild(s)}))}
+async function loadLibs(k){for(var i=0;i<LIBS[k].length;i++)await loadJs(LIBS[k][i])}
+var EXR=[['month','This month'],['last','Last month'],['30','Last 30 days'],['all','All time']];
+function exRange(k){var td=today(),d=new Date();
+  if(k==='month')return [td.slice(0,8)+'01',td];
+  if(k==='last'){d.setDate(1);d.setDate(0);var e=ymd(d);return [e.slice(0,8)+'01',e]}
+  if(k==='30')return [addDays(td,-29),td];
+  return [txs.reduce(function(m,t){return t.date&&t.date<m?t.date:m},td),td]}
+function exData(admin){
+  var u=admin?exu:me,from=exf,to=ext;
+  var base=txs.filter(function(t){return admin?(u==='all'||t.user===u):t.user===me}).slice().sort(cmp),open=0,rows=[],ti=0,to2=0;
+  base.forEach(function(t){var v=t.type==='in'?t.amount:-t.amount;if(t.date<from){open+=v;return}if(t.date>to)return;
+    t.type==='in'?ti+=t.amount:to2+=t.amount;rows.push({t:t,bal:0})});
+  var b=open;rows.forEach(function(r){b+=r.t.type==='in'?r.t.amount:-r.t.amount;r.bal=b});
+  return {rows:rows,open:open,i:ti,o:to2,close:b,user:admin?(u==='all'?'All users':u):me,all:admin&&u==='all'};
+}
+function exportHtml(admin){
+  if(!exf){var r=exRange('month');exf=r[0];ext=r[1]}
+  var D=exData(admin);
+  var h='<div class="uhd"><div><h2 style="margin:0">Export statement</h2><small class="mut">PDF or Excel, with your business name and logo</small></div></div><div class="card">';
+  h+='<label class="fl">Period</label><div class="sgc" style="margin-bottom:10px">'+EXR.map(function(r){var x=exRange(r[0]);return '<button data-ex="'+r[0]+'" class="'+(x[0]===exf&&x[1]===ext?'on':'')+'">'+r[1]+'</button>'}).join('')+'</div>';
+  h+='<div class="row2" style="grid-template-columns:1fr 1fr"><div><label class="fl" for="x_f">From</label><input id="x_f" type="date" value="'+exf+'"></div><div><label class="fl" for="x_t">To</label><input id="x_t" type="date" value="'+ext+'"></div></div>';
+  if(admin)h+='<label class="fl" for="x_u">Cashbook</label><select id="x_u"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(exu===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select>';
+  h+='<div class="exs"><div><small>Opening</small><b>'+sgnb(D.open)+'</b></div><div><small>Cash in</small><b>'+fmt(D.i)+'</b></div><div><small>Cash out</small><b>'+fmt(D.o)+'</b></div><div><small>Closing</small><b>'+sgnb(D.close)+'</b></div></div>';
+  h+='<p class="mut" style="margin:0 0 12px">'+D.rows.length+' entr'+(D.rows.length===1?'y':'ies')+' · '+esc(D.user)+(biz.name?' · '+esc(biz.name):'')+'</p>';
+  h+='<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="gpdf" id="x_pdf"'+(D.rows.length||D.open?'':' disabled')+'>⬇ PDF</button><button class="gxls" id="x_xls"'+(D.rows.length||D.open?'':' disabled')+'>⬇ Excel</button></div>';
+  if(!biz.name&&admin)h+='<p class="mut" style="margin:12px 0 0;font-size:13px">Tip: add your business name and logo in <button class="lnk" data-m="settings">Business settings</button>.</p>';
+  return h+'</div>';
+}
+var sgnb=function(n){return (n<0?'−':'')+fmt(Math.abs(n))};
+var n2=function(n){return Number(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})};
+var exName=function(ext2){return ((biz.name||'Cashflow').replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()||'Cashflow')+' statement '+exf+' to '+ext+'.'+ext2};
+function imgSize(src){return new Promise(function(ok){var i=new Image();i.onload=function(){ok([i.width,i.height])};i.onerror=function(){ok([1,1])};i.src=src})}
+function saveFile(blob,name){var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1000)}
+async function exportPdf(admin){
+  await loadLibs('pdf');var D=exData(admin),J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4'}),W=210,M=14,y=M,x=M;
+  if(bizLogo){var sz=await imgSize(bizLogo),hh=18,ww=Math.min(40,hh*sz[0]/sz[1]);hh=ww*sz[1]/sz[0];doc.addImage(bizLogo,bizLogo.indexOf('image/png')>0?'PNG':'JPEG',M,y,ww,hh);x=M+ww+5}
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(biz.name||'Cashflow',x,y+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  if(biz.address)doc.text(doc.splitTextToSize(biz.address,W-M-x-60),x,y+11);
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20);doc.text('Cashbook statement',W-M,y+6,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);
+  doc.text(dshort(exf)+' '+exf.slice(0,4)+' – '+dshort(ext)+' '+ext.slice(0,4),W-M,y+11,{align:'right'});doc.text(D.user,W-M,y+15,{align:'right'});
+  y+=26;doc.setDrawColor(220);doc.line(M,y,W-M,y);y+=6;
+  var bx=[['Opening balance',D.open],['Total cash in',D.i],['Total cash out',D.o],['Closing balance',D.close]],bw=(W-2*M-9)/4;
+  bx.forEach(function(b,i){var bx0=M+i*(bw+3);doc.setFillColor(245,246,248);doc.roundedRect(bx0,y,bw,15,2,2,'F');doc.setFontSize(8);doc.setTextColor(110);doc.text(b[0],bx0+3,y+5);
+    doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(i===1?18:i===2?194:20,i===1?128:i===2?54:20,i===1?92:i===2?43:20);doc.text('Rs '+(b[1]<0?'-':'')+n2(Math.abs(b[1])),bx0+3,y+11.5);doc.setFont('helvetica','normal')});
+  y+=21;
+  var head=['Date','Details'].concat(D.all?['User']:[]).concat(['In (Rs)','Out (Rs)','Balance (Rs)']);
+  var body=D.rows.map(function(r){var t=r.t;return [dshort(t.date)+' '+t.date.slice(2,4)+(tm(t)?'\n'+t12(tm(t)):''),(nt(t)||'')+(t.desc&&t.desc!==nt(t)?(nt(t)?'\n':'')+t.desc:'')].concat(D.all?[t.user]:[]).concat([t.type==='in'?n2(t.amount):'',t.type==='out'?n2(t.amount):'',(r.bal<0?'-':'')+n2(Math.abs(r.bal))])});
+  var nc=head.length;
+  doc.autoTable({startY:y,head:[head],body:body,margin:{left:M,right:M},theme:'grid',
+    styles:{fontSize:8.5,cellPadding:2,lineColor:[230,230,230],lineWidth:.2,textColor:30},headStyles:{fillColor:[33,150,243],textColor:255,fontStyle:'bold'},
+    alternateRowStyles:{fillColor:[250,250,251]},columnStyles:(function(){var c={0:{cellWidth:24}};c[nc-3]={halign:'right',textColor:[18,128,92]};c[nc-2]={halign:'right',textColor:[194,54,43]};c[nc-1]={halign:'right',fontStyle:'bold'};return c})(),
+    didDrawPage:function(){var p=doc.internal.getNumberOfPages();doc.setFontSize(8);doc.setTextColor(140);doc.text((biz.name||'Cashflow')+' · Generated '+dlabel(today()),M,290);doc.text('Page '+p,W-M,290,{align:'right'})}});
+  saveFile(doc.output('blob'),exName('pdf'));
+}
+async function exportXls(admin){
+  await loadLibs('xls');var D=exData(admin),wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Statement',{views:[{showGridLines:false}]});
+  var cols=[['Date',12],['Time',10],['Notes',26],['Description',24]].concat(D.all?[['User',14]]:[]).concat([['Cash In',14],['Cash Out',14],['Balance',16]]),nc=cols.length;
+  ws.columns=cols.map(function(c){return {width:c[1]}});
+  var tc=1;
+  if(bizLogo){var sz=await imgSize(bizLogo),hpx=64,wpx=Math.min(160,hpx*sz[0]/sz[1]);hpx=wpx*sz[1]/sz[0];
+    var id=wb.addImage({base64:bizLogo,extension:bizLogo.indexOf('image/png')>0?'png':'jpeg'});ws.addImage(id,{tl:{col:0,row:0},ext:{width:wpx,height:hpx}});tc=2;}
+  ws.getRow(1).height=24;ws.getRow(2).height=16;ws.getRow(3).height=16;
+  var put=function(r,c,v,st){var cell=ws.getCell(r,c);cell.value=v;if(st)Object.assign(cell,st);return cell};
+  put(1,tc+1,biz.name||'Cashflow',{font:{bold:true,size:16}});
+  if(biz.address)put(2,tc+1,biz.address.split(/\s*\n\s*/).join(', '),{font:{size:10,color:{argb:'FF6B7280'}}});
+  put(3,tc+1,'Cashbook statement · '+exf+' to '+ext+' · '+D.user,{font:{size:10,color:{argb:'FF6B7280'}}});
+  var r=6,S=[['Opening balance',D.open],['Total cash in',D.i],['Total cash out',D.o],['Closing balance',D.close]];
+  S.forEach(function(s,i){put(r,1+i*2,s[0],{font:{size:9,color:{argb:'FF6B7280'}}});put(r+1,1+i*2,s[1],{font:{bold:true,size:12},numFmt:'#,##0.00;-#,##0.00'})});
+  r=9;var hr=ws.getRow(r);cols.forEach(function(c,i){var cell=hr.getCell(i+1);cell.value=c[0];cell.font={bold:true,color:{argb:'FFFFFFFF'}};cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2196F3'}};cell.alignment={vertical:'middle',horizontal:i>=nc-3?'right':'left'}});hr.height=20;
+  D.rows.forEach(function(x,k){var t=x.t,row=ws.getRow(r+1+k);
+    var v=[new Date(t.date+'T00:00:00Z'),tm(t)?t12(tm(t)):'',nt(t)||'',t.desc||''].concat(D.all?[t.user]:[]).concat([t.type==='in'?t.amount:null,t.type==='out'?t.amount:null,x.bal]);
+    v.forEach(function(val,i){var c=row.getCell(i+1);c.value=val;if(i===0)c.numFmt='dd mmm yyyy';if(i>=nc-3){c.numFmt='#,##0.00;-#,##0.00'}if(i===nc-3)c.font={color:{argb:'FF12805C'}};if(i===nc-2)c.font={color:{argb:'FFC2362B'}};if(i===nc-1)c.font={bold:true};
+      c.border={bottom:{style:'hair',color:{argb:'FFE3E6EA'}}};if(k%2)c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FFF7F8FA'}}})});
+  var tr=ws.getRow(r+1+D.rows.length);tr.getCell(1).value='Total';tr.getCell(nc-2).value=D.i;tr.getCell(nc-1).value=D.o;tr.getCell(nc).value=D.close;
+  for(var i=1;i<=nc;i++){var c=tr.getCell(i);c.font={bold:true};c.border={top:{style:'thin',color:{argb:'FF9CA3AF'}}};if(i>=nc-2)c.numFmt='#,##0.00;-#,##0.00'}
+  ws.views=[{state:'frozen',ySplit:r,showGridLines:false}];
+  ws.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0};
+  var buf=await wb.xlsx.writeBuffer();saveFile(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),exName('xlsx'));
+}
+function bindExport(admin){
+  var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};if(!G('x_pdf'))return;
+  $('[data-ex]').forEach(function(b){b.onclick=function(){var r=exRange(b.dataset.ex);exf=r[0];ext=r[1];render()}});
+  G('x_f').onchange=function(e){if(e.target.value){exf=e.target.value;if(exf>ext)ext=exf;render()}};
+  G('x_t').onchange=function(e){if(e.target.value){ext=e.target.value;if(ext<exf)exf=ext;render()}};
+  if(G('x_u'))G('x_u').onchange=function(e){exu=e.target.value;render()};
+  var run=function(btn,fn,label){btn.onclick=async function(){var b=this;b.disabled=true;b.textContent='Preparing…';err='';
+    try{await fn(admin)}catch(x){seterr(x.message||'Export failed')}b.disabled=false;b.textContent=label}};
+  run(G('x_pdf'),exportPdf,'⬇ PDF');run(G('x_xls'),exportXls,'⬇ Excel');
+}
+
 // Users screen (admin, opened from the side menu): names with balances, add / change password / delete.
 // Add and change-password use a small bottom sheet; sheet = {mode:'add'} or {mode:'pw',user:name}.
 function usersHtml(){
@@ -517,7 +665,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){tab=b.dataset.m;err='';sheet=null;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -527,6 +675,7 @@ function bind(admin){
   $('[data-rg]').forEach(function(b){b.onclick=function(){range=b.dataset.rg;render()}});
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   if(tab==='dash')dashCharts();
+  bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-all]').forEach(function(b){b.onclick=function(){fuser='all';render()}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
