@@ -172,6 +172,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .exs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:6px 0 10px}.exs div{background:var(--bg);border-radius:10px;padding:8px}.exs small{display:block;color:var(--mut);font-size:11px}.exs b{font-size:13px;white-space:nowrap}
 .bbtn .gpdf{background:#c2362b}.bbtn .gxls{background:#12805c}.bbtn button:disabled{opacity:.5}
 .row2>div{min-width:0}.row2 input[type=date]{min-width:0;width:100%}
+.chev{color:var(--mut);font-size:22px;line-height:1;margin-left:2px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .dempty{text-align:center;padding:28px 16px}.dempty b{font-size:16px}.dempty .mut{margin:6px 0 14px}
 </style>
@@ -182,12 +183,12 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,fromBooks=false,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
   {id:'dash',icon:'📊',label:'Dashboard'},
-  {id:'users',icon:'👥',label:'Users',admin:true},
+  {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true}
 ];
@@ -218,7 +219,7 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;fromBooks=false;fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -266,9 +267,9 @@ function viewLogin(){
 
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
-  var tabs=[['tx','Entries'],['dash','Dashboard']];
+  var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['books','Users']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'&&admin?booksHtml():tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -492,7 +493,7 @@ function txHtml(admin){
   var h='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
   if(showQ)h+='<div class="pad" style="padding-bottom:0"><input id="q" placeholder="Search notes, amount, user" value="'+esc(q)+'"></div>';
   if(admin)h+='<div class="pad" style="padding-bottom:0"><select id="e_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></div>';
-  if(admin&&fuser!=='all')h+='<div class="pad" style="padding-bottom:0"><div class="card row" style="margin:0;justify-content:space-between;flex-wrap:nowrap"><span>Viewing cashbook of <b>'+esc(fuser)+'</b></span><button class="sm" data-all="1" style="flex:none">Show all</button></div></div>';
+  if(admin&&fuser!=='all')h+='<div class="pad" style="padding-bottom:0"><div class="card row" style="margin:0;justify-content:space-between;flex-wrap:nowrap">'+(fromBooks?'<button class="sm" data-back="1" style="flex:none">← Users</button>':'')+'<span style="flex:1">Cashbook of <b>'+esc(fuser)+'</b></span>'+(fromBooks?'':'<button class="sm" data-all="1" style="flex:none">Show all</button>')+'</div></div>';
   h+='<div class="ch"><span>Date</span><span class="in">Cash In</span><span class="out">Cash Out</span></div>';
   if(!list.length)h+='<p class="mut pad">No entries found.</p>';
   var last='';
@@ -638,6 +639,17 @@ function bindExport(admin){
   run(G('x_pdf'),exportPdf,'⬇ PDF');run(G('x_xls'),exportXls,'⬇ Excel');
 }
 
+// Users tab (admin): every cashbook with its balance; tapping one opens it in Entries with a back button.
+function booksHtml(){
+  var names={},tot=0;Object.keys(users).forEach(function(k){names[k]=1});txs.forEach(function(t){names[t.user]=1});
+  var rows=Object.keys(names).map(function(k){var b=0,n=0,last='';txs.forEach(function(t){if(t.user===k){n++;b+=t.type==='in'?t.amount:-t.amount;if(t.date>last)last=t.date}});tot+=b;return {k:k,b:b,n:n,last:last}})
+    .sort(function(a,b){return (users[b.k]?1:0)-(users[a.k]?1:0)||a.k.localeCompare(b.k)});
+  var h='<div class="uhd"><div><h2 style="margin:0">Cashbooks</h2><small class="mut">'+rows.length+' users · tap one to open</small></div><div style="text-align:right"><small class="mut">Total balance</small><div><b>'+sgnb(tot)+'</b></div></div></div><div class="card ul">';
+  rows.forEach(function(r){
+    h+='<button class="urow" data-vu="'+esc(r.k)+'"><span class="av sm">'+esc(r.k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(r.k)+(users[r.k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut">'+r.n+' entr'+(r.n===1?'y':'ies')+(r.last?' · last '+dshort(r.last):'')+'</small></span><b class="ub'+(r.b<0?' neg':'')+'">'+sgnb(r.b)+'</b><span class="chev">›</span></button>'});
+  return h+'</div>';
+}
+
 // Users screen (admin, opened from the side menu): names with balances, add / change password / delete.
 // Add and change-password use a small bottom sheet; sheet = {mode:'add'} or {mode:'pw',user:name}.
 function usersHtml(){
@@ -665,19 +677,20 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
-  $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;if(fromBooks){fromBooks=false;fuser='all'}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-t]').forEach(function(b){b.onclick=function(){if(fromBooks){fromBooks=false;fuser='all'}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
   if(G('q'))G('q').oninput=function(e){q=e.target.value;focusQ=true;render()};
-  if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;render()};
+  if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;fromBooks=false;render()};
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
   $('[data-rg]').forEach(function(b){b.onclick=function(){range=b.dataset.rg;render()}});
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
-  $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
+  $('[data-vu]').forEach(function(b){b.onclick=function(){fromBooks=tab==='books';fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-all]').forEach(function(b){b.onclick=function(){fuser='all';render()}});
+  $('[data-back]').forEach(function(b){b.onclick=function(){fuser='all';fromBooks=false;tab='books';render();window.scrollTo(0,0)}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
   $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||''};err='';render()}}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
