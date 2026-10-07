@@ -192,6 +192,8 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .lsv small{font-weight:400;opacity:.8}
 .urw{border-bottom:1px solid var(--bd)}.urw:last-child{border:0}.urw .urow{border:0}
 .pcnt{display:inline-block;margin:-4px 0 10px 48px;border:0;background:var(--bg);color:var(--pri);font-size:12px;font-weight:600;padding:4px 10px;border-radius:14px}
+.lopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:transparent;padding:14px 0}.lopt:last-child{border:0}
+.lopt>span:first-child{flex:1}.lopt b,.lopt small{display:block}.lopt b{font-size:17px}.lopt.on b{color:var(--pri)}.lck{color:var(--pri);font-size:20px;font-weight:700;width:24px;text-align:center}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -214,7 +216,8 @@ var MENU=[
   {id:'dash',icon:'📊',label:'Dashboard'},
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
-  {id:'settings',icon:'⚙️',label:'Business settings',admin:true}
+  {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
+  {id:'lang',icon:'🌐',label:'Language / भाषा'}
 ];
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
 var esc=function(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/"/g,'&quot;')};
@@ -258,11 +261,91 @@ async function init(){
   setInterval(function(){if(!token||form||sheet||psheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
 }
 
+// ---- Language (English / हिंदी) ----
+// The UI is written in English; in Hindi mode each render is translated in place: whole text
+// nodes and placeholders are looked up in HI, and a few sentence templates use HIP patterns.
+// The choice is per device. PDF / Excel exports stay in English.
+var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
+var HI={
+'Cashflow':'कैशफ्लो','Cashflow setup':'कैशफ्लो सेटअप','Create the admin account. You will use it to add other users.':'एडमिन खाता बनाएं। इससे आप दूसरे यूज़र जोड़ेंगे।',
+'Admin username':'एडमिन यूज़रनेम','Password (min 6 chars)':'पासवर्ड (कम से कम 6 अक्षर)','Confirm password':'पासवर्ड दोबारा लिखें','Create admin':'एडमिन बनाएं',
+'Sign in to continue':'जारी रखने के लिए साइन इन करें','Username':'यूज़रनेम','Password':'पासवर्ड','Sign in':'साइन इन','Sign out':'साइन आउट','Install app':'ऐप इंस्टॉल करें',
+'Cannot reach server':'सर्वर से कनेक्ट नहीं हो पा रहा','Menu':'मेनू','Notifications':'सूचनाएं','Admin':'एडमिन','User':'यूज़र','Admin (you)':'एडमिन (आप)',
+'Entries':'एंट्री','Dashboard':'डैशबोर्ड','People':'लोग','Parties':'पार्टियां','Users':'यूज़र','My parties':'मेरी पार्टियां','All parties':'सभी पार्टियां',
+'Manage users':'यूज़र मैनेज करें','Export PDF / Excel':'PDF / Excel एक्सपोर्ट','Business settings':'बिज़नेस सेटिंग्स','Language':'भाषा','Language / भाषा':'भाषा / Language',
+'All':'सभी','Daily':'रोज़ाना','Weekly':'साप्ताहिक','Monthly':'मासिक','Yearly':'सालाना','All users':'सभी यूज़र','Search notes, amount, user':'नोट, रकम, यूज़र खोजें',
+'Date':'तारीख','Cash In':'नकद आया','Cash Out':'नकद गया','Cash in':'नकद आया','Cash out':'नकद गया','Total Cash In':'कुल नकद आया','Total Cash Out':'कुल नकद गया','Balance':'बैलेंस',
+'No entries found.':'कोई एंट्री नहीं मिली।','(no notes)':'(कोई नोट नहीं)','Edit entry':'एंट्री बदलें','Delete':'हटाएं','Save and exit':'सेव करें और बाहर जाएं','Save and continue':'सेव करें और जारी रखें','Update':'अपडेट करें',
+'Cash In amount (₹)':'आई रकम (₹)','Cash Out amount (₹)':'गई रकम (₹)','Notes':'नोट','Description / Category':'विवरण / कैटेगरी','Party (optional)':'पार्टी (वैकल्पिक)','No party':'कोई पार्टी नहीं',
+'Entry for user:':'इस यूज़र की एंट्री:','Enter a valid amount':'सही रकम लिखें','Pick a date':'तारीख चुनें','Delete this entry?':'यह एंट्री हटाएं?',
+'Total balance':'कुल बैलेंस','Total balance · all users':'कुल बैलेंस · सभी यूज़र','Total in':'कुल आया','Total out':'कुल गया','Today':'आज','This month':'इस महीने','Net':'शुद्ध',
+'Last 14 days':'पिछले 14 दिन','Cash in vs cash out per day · tap a day':'रोज़ का आया बनाम गया · किसी दिन पर टैप करें','In':'आया','Out':'गया',
+'Daily summary':'रोज़ का सारांश','Last 7 days':'पिछले 7 दिन','Last 30 days':'पिछले 30 दिन','All time':'शुरू से अब तक','No activity in this period.':'इस अवधि में कोई लेन-देन नहीं।',
+'By user':'यूज़र के अनुसार','All-time · tap to open their entries':'शुरू से · उनकी एंट्री देखने के लिए टैप करें','Recent activity':'हाल की गतिविधि','#':'#',
+'No entries yet':'अभी कोई एंट्री नहीं','Add your first Cash In or Cash Out and your dashboard fills in here.':'पहली आई या गई रकम जोड़ें, आपका डैशबोर्ड यहां दिखेगा।','Go to Entries':'एंट्री पर जाएं',
+'Show less':'कम दिखाएं','No activity yet. Adds, edits and deletes will show up here.':'अभी कोई गतिविधि नहीं। जोड़ना, बदलना और हटाना यहां दिखेगा।','Just now':'अभी-अभी','Yesterday':'कल',
+'Cashbooks':'कैशबुक','Users · tap one to open':'यूज़र · खोलने के लिए टैप करें','+ Add user':'+ यूज़र जोड़ें','Add user':'यूज़र जोड़ें','Create user':'यूज़र बनाएं','Change password':'पासवर्ड बदलें',
+'Save password':'पासवर्ड सेव करें','New password (min 6 chars)':'नया पासवर्ड (कम से कम 6 अक्षर)','Cancel':'रद्द करें','Enter a username':'यूज़रनेम लिखें',
+'Password must be at least 6 characters':'पासवर्ड कम से कम 6 अक्षर का होना चाहिए','Passwords do not match':'पासवर्ड मेल नहीं खाते','Wrong username or password':'यूज़रनेम या पासवर्ड गलत है',
+'Username already exists':'यह यूज़रनेम पहले से है','(removed)':'(हटाया गया)',
+'You will get':'आपको लेना है','You will give':'आपको देना है','Everyone will get':'सबको लेना है','Everyone will give':'सबको देना है','Will get':'लेना है','Will give':'देना है','Settled':'हिसाब बराबर',
+'Customer':'ग्राहक','Supplier':'सप्लायर','Staff':'स्टाफ','Other':'अन्य','+ Add party':'+ पार्टी जोड़ें','Add party':'पार्टी जोड़ें','Edit party':'पार्टी बदलें','Save':'सेव करें','Name':'नाम',
+'Phone (optional, for WhatsApp)':'फ़ोन (वैकल्पिक, WhatsApp के लिए)','Enter a name':'नाम लिखें','No parties yet':'अभी कोई पार्टी नहीं','You already have a party with that name':'इस नाम की पार्टी पहले से है',
+'Add customers, suppliers or staff to see how much each one owes you or you owe them. Only you can see your parties.':'ग्राहक, सप्लायर या स्टाफ जोड़ें और देखें किससे कितना लेना या देना है। आपकी पार्टियां सिर्फ़ आप देख सकते हैं।',
+'No one has added any parties yet.':'अभी किसी ने कोई पार्टी नहीं जोड़ी।','← Parties':'← पार्टियां','← Users':'← यूज़र','View only':'सिर्फ़ देखने के लिए','Entry':'एंट्री','You gave':'आपने दिया','You got':'आपको मिला',
+'You gave ₹':'आपने दिया ₹','You got ₹':'आपको मिला ₹','📞 Call':'📞 कॉल','💬 WhatsApp':'💬 WhatsApp','🗑 Delete':'🗑 हटाएं','Cash given':'नकद दिया','Cash received':'नकद मिला',
+'This party has entries. Delete those entries first.':'इस पार्टी की एंट्री हैं। पहले वे एंट्री हटाएं।',
+'Export statement':'स्टेटमेंट एक्सपोर्ट','PDF or Excel, with your business name and logo':'आपके बिज़नेस नाम और लोगो के साथ PDF या Excel','Period':'अवधि','Last month':'पिछला महीना','From':'से','To':'तक',
+'Cashbook':'कैशबुक','Opening':'शुरुआती','Closing':'आखिरी','⬇ PDF':'⬇ PDF','⬇ Excel':'⬇ Excel','Preparing…':'तैयार हो रहा है…',
+'Shown in the app and on PDF / Excel exports':'ऐप और PDF / Excel एक्सपोर्ट में दिखेगा','Logo':'लोगो','Upload logo':'लोगो अपलोड करें','Change logo':'लोगो बदलें','Remove':'हटाएं',
+'PNG or JPG. Square works best.':'PNG या JPG। चौकोर लोगो सबसे अच्छा है।','Business name':'बिज़नेस का नाम','Business address':'बिज़नेस का पता','e.g. Sharma Traders':'जैसे शर्मा ट्रेडर्स',
+'Shop no., street, city, PIN':'दुकान नं., गली, शहर, पिन','Save settings':'सेटिंग्स सेव करें','Saving…':'सेव हो रहा है…','Saved ✓':'सेव हो गया ✓','Discard unsaved settings?':'बिना सेव की सेटिंग्स छोड़ दें?',
+'Choose the app language for this phone.':'इस फ़ोन के लिए ऐप की भाषा चुनें।','PDF and Excel exports stay in English.':'PDF और Excel एक्सपोर्ट अंग्रेज़ी में ही रहेंगे।',
+'For':'यूज़र:','Tip: add customers and suppliers under':'सुझाव: ग्राहक और सप्लायर यहां जोड़ें:','to track what each one owes.':'ताकि पता रहे किससे कितना लेना है।','People → My parties':'लोग → मेरी पार्टियां','Tip: add your business name and logo in':'सुझाव: अपना बिज़नेस नाम और लोगो यहां जोड़ें:','Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
+};
+var HIP=[
+[/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
+[/^(\d+) days? with entries$/,'$1 दिन जिनमें एंट्री है'],[/^Show all (\d+)$/,'सभी $1 दिखाएं'],[/^Latest (\d+) entries added$/,'हाल की $1 एंट्री'],
+[/^(\d+) logins · all-time balance$/,'$1 लॉगिन · शुरू से बैलेंस'],[/^(\d+) users · tap one to open$/,'$1 यूज़र · खोलने के लिए टैप करें'],
+[/^from (\d+) part(?:y|ies)$/,'$1 पार्टी से'],[/^to (\d+) part(?:y|ies)$/,'$1 पार्टी को'],[/^👤 (\d+) part(?:y|ies) ›$/,'👤 $1 पार्टी ›'],
+[/^(.+) will get$/,'$1 को लेना है'],[/^(.+) will give$/,'$1 को देना है'],[/^(.+)'s parties$/,'$1 की पार्टियां'],
+[/^(.+) owes you$/,'$1 से आपको लेना है'],[/^You owe (.+)$/,'आपको $1 को देना है'],[/^All settled with (.+)$/,'$1 के साथ हिसाब बराबर'],
+[/^(.+) owes ([a-z0-9_.-]+)$/,'$1 से $2 को लेना है'],[/^([a-z0-9_.-]+) owes (.+)$/,'$1 को $2 को देना है'],[/^(.+) gave$/,'$1 ने दिया'],[/^(.+) got$/,'$1 को मिला'],
+[/^last (.+)$/,'आखिरी $1'],[/^(.*)no entries yet$/,'$1अभी कोई एंट्री नहीं'],[/^Delete party "(.+)"\?$/,'पार्टी "$1" हटाएं?'],[/^Delete user "(.+)"\? They can no longer sign in\. Their entries are kept\.$/,'यूज़र "$1" हटाएं? वह साइन इन नहीं कर पाएगा। उसकी एंट्री बनी रहेंगी।'],[/^(\d+)m ago$/,'$1 मिनट पहले'],[/^(\d+)h ago$/,'$1 घंटे पहले'],
+[/^Total balance · (.+)$/,'कुल बैलेंस · $1'],[/^(.+) · (Admin|User)$/,function(m,a,b){return a+' · '+HI[b]}],
+[/^✓ (Saved|Updated) · Cash (In|Out) (.+)$/,function(m,a,b,c){return '✓ '+(a==='Saved'?'सेव हुआ':'अपडेट हुआ')+' · '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
+[/^Last saved: Cash (In|Out) (.+)$/,function(m,b,c){return 'आखिरी सेव: '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
+[/^(.+) added · (.+)$/,'$1 ने जोड़ा · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 से लेना है $2'],
+[/^(.* · )?last (.+)$/,function(m,a,b){return (a||'')+'आखिरी '+b}]
+];
+var HIM={Jan:'जन',Feb:'फ़र',Mar:'मार्च',Apr:'अप्रैल',May:'मई',Jun:'जून',Jul:'जुल',Aug:'अग',Sep:'सित',Oct:'अक्टू',Nov:'नव',Dec:'दिस'},HID={Sun:'रवि',Mon:'सोम',Tue:'मंगल',Wed:'बुध',Thu:'गुरु',Fri:'शुक्र',Sat:'शनि'};
+// Dates are built with English month/day names (exports need them); on screen they are swapped here.
+function trDate(t){return t.replace(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat), /,function(m,d){return HID[d]+', '}).replace(/(\b\d{1,2} )(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b/g,function(m,a,b){return a+HIM[b]}).replace(/\b(AM|PM)\b/g,function(m){return m==='AM'?'सुबह':'शाम'})}
+function trS(s){var k=s.trim();if(!k)return s;var v=HI[k];if(v==null){for(var i=0;i<HIP.length;i++){if(HIP[i][0].test(k)){v=k.replace(HIP[i][0],HIP[i][1]);break}}}
+  if(v==null&&/\d{1,2} (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|\d (AM|PM)\b/.test(k))v=trDate(k);else if(v!=null)v=trDate(v);
+  return v==null?s:s.replace(k,v)}
+function L(s){return lang==='hi'?trS(s):s}
+function tr(root){
+  if(lang!=='hi'||!root)return;
+  var w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT,{acceptNode:function(n){var p=n.parentNode&&n.parentNode.nodeName;return p==='SCRIPT'||p==='STYLE'||p==='OPTION'&&false?NodeFilter.FILTER_REJECT:NodeFilter.FILTER_ACCEPT}}),n,list=[];
+  while((n=w.nextNode()))list.push(n);
+  list.forEach(function(n){var v=trS(n.nodeValue);if(v!==n.nodeValue)n.nodeValue=v});
+  root.querySelectorAll&&root.querySelectorAll('[placeholder],[aria-label],[title]').forEach(function(el){['placeholder','aria-label','title'].forEach(function(a){var v=el.getAttribute(a);if(v){var t=trS(v);if(t!==v)el.setAttribute(a,t)}})});
+}
+function langHtml(){
+  var opt=function(k,l,sub){return '<button class="lopt'+(lang===k?' on':'')+'" data-lang="'+k+'"><span><b>'+l+'</b><small class="mut">'+sub+'</small></span><span class="lck">'+(lang===k?'✓':'')+'</span></button>'};
+  return '<div class="uhd"><div><h2 style="margin:0">Language / भाषा</h2><small class="mut">Choose the app language for this phone.</small></div></div><div class="card ul">'+
+    opt('en','English','English')+opt('hi','हिंदी','Hindi')+'</div><p class="note">PDF and Excel exports stay in English.</p>';
+}
+function setLang(k){lang=k;try{localStorage.setItem('cf_lang',k)}catch(e){}document.documentElement.lang=k==='hi'?'hi':'en';render()}
+document.documentElement.lang=lang==='hi'?'hi':'en';
+
 function render(){
-  if(needsSetup)return viewSetup();
-  if(!me)return viewLogin();
-  if(form)return viewForm();
-  viewMain();
+  if(needsSetup)viewSetup();
+  else if(!me)viewLogin();
+  else if(form)viewForm();
+  else viewMain();
+  tr(app);
 }
 
 function viewSetup(){
@@ -275,7 +358,7 @@ function viewSetup(){
     try{var r=await api('POST','/setup',{username:n,password:p});token=r.token;sset(token);needsSetup=false;err='';await load();tab='tx';render()}catch(e){seterr(e.message)}
   };
 }
-function seterr(m){err=m;var e=document.getElementById('e');if(e)e.textContent=m}
+function seterr(m){err=m;var e=document.getElementById('e');if(e)e.textContent=L(m)}
 
 function viewLogin(){
   app.innerHTML='<div class="card ctr"><h1>Cashflow</h1><p class="mut">Sign in to continue</p>'+
@@ -293,7 +376,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -314,6 +397,7 @@ function badge(n){try{if(navigator.setAppBadge)n?navigator.setAppBadge(n):naviga
 function bellHtml(){var n=unread();return '<button class="gh bell" id="bell" aria-label="Notifications'+(n?' ('+n+' new)':'')+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'+(n?'<span class="bdg">'+(n>9?'9+':n)+'</span>':'')+'</button>'}
 function ago(ts){var s=(Date.now()-ts)/1000;if(s<60)return 'Just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';var d=new Date(ts);if(s<172800)return 'Yesterday';return String(d.getDate()).padStart(2,'0')+' '+MN[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'')}
 function actText(a){
+  if(lang==='hi')return actTextHi(a);
   var who=a.actor===me?'You':'<b>'+esc(a.actor)+'</b>',ty=a.type==='in'?'Cash In':'Cash Out',amt=a.amount!=null?' '+fmt(a.amount):'';
   var book=a.owner===a.actor?'':a.owner===me?' in your book':' in <b>'+esc(a.owner)+'</b>\'s book';
   switch(a.action){
@@ -362,16 +446,16 @@ function viewForm(){
   G('fb').onclick=function(){form=null;err='';render()};
   app.querySelectorAll('[data-ty]').forEach(function(b){b.onclick=function(){form.type=b.dataset.ty;render()}});
   app.querySelectorAll('[data-dd]').forEach(function(b){b.onclick=function(){var d=new Date((form.date||today())+'T00:00:00');d.setDate(d.getDate()+parseInt(b.dataset.dd));form.date=ymd(d);render()}});
-  if(G('fdel'))G('fdel').onclick=async function(){if(confirm('Delete this entry?')){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
+  if(G('fdel'))G('fdel').onclick=async function(){if(confirm(L('Delete this entry?'))){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
   if(G('f_party'))G('f_party').onchange=function(e){form.party=e.target.value||null;render()};
-  G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n)n.innerHTML=partyNote(form)});
+  G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n){n.innerHTML=partyNote(form);tr(n)}});
   G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
   if(!f.id&&!f.amount)G('f_amt').focus();
 }
 // Small confirmation pill at the top of the screen; lives outside #app so re-renders don't remove it.
 function toast(html){
   var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.setAttribute('aria-live','polite');document.body.appendChild(t)}
-  t.innerHTML=html;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);
+  t.innerHTML=html;tr(t);t.classList.remove('on');void t.offsetWidth;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);
 }
 function savedText(d,edit){return (edit?'Updated':'Saved')+' · '+(d.type==='in'?'Cash In':'Cash Out')+' '+fmt(d.amount)+(d.party&&pName(d.party)?' · 👤 '+esc(pName(d.party)):d.notes?' · '+esc(d.notes.length>18?d.notes.slice(0,18)+'…':d.notes):'')}
 async function save(exit){
@@ -468,7 +552,7 @@ function xlabels(B,x,H){var n=B.length,ids=n<=1?[0]:n===2?[0,1]:[0,Math.floor((n
 // Nearest-bucket hover for pointer and touch; arrow keys step through buckets when the chart has focus.
 function hover(box,n,x,show,hide){
   var svg=box.querySelector('svg'),tip=box.querySelector('.tip'),g=svg.querySelector('.hv'),cur=-1;
-  var at=function(i){cur=i;if(g)g.style.display='';tip.innerHTML=show(i,g);tip.style.display='block';
+  var at=function(i){cur=i;if(g)g.style.display='';tip.innerHTML=show(i,g);tr(tip);tip.style.display='block';
     var tx=x(i),tw=tip.offsetWidth,bw=box.clientWidth;tip.style.left=Math.max(0,Math.min(bw-tw,tx-tw/2))+'px'};
   var off=function(){cur=-1;if(g)g.style.display='none';tip.style.display='none';hide&&hide()};
   var pick=function(e){var r=svg.getBoundingClientRect(),px=e.clientX-r.left,b=0,bd=1e9;for(var i=0;i<n;i++){var d=Math.abs(x(i)-px);if(d<bd){bd=d;b=i}}at(b)};
@@ -531,10 +615,10 @@ function bindSettings(){
   G('b_logo').onchange=async function(e){var f=e.target.files[0];if(!f)return;try{bform.logo=await readLogo(f);bdirty=true;err='';render()}catch(x){seterr(x.message)}};
   if(G('b_rm'))G('b_rm').onclick=function(){bform.logo=null;bdirty=true;render()};
   G('b_save').onclick=async function(){
-    var b=this;b.disabled=true;b.textContent='Saving…';
+    var b=this;b.disabled=true;b.textContent=L('Saving…');
     try{var r=await api('PUT','/settings',{name:bform.name,address:bform.address,logo:bform.logo||''});
-      biz=r;bizLogo=r.logo||null;bizV=r.v;bform=null;bdirty=false;err='';await load();render();var ok=G('b_ok');if(ok)ok.textContent='Saved ✓'}
-    catch(x){b.disabled=false;b.textContent='Save settings';seterr(x.message)}
+      biz=r;bizLogo=r.logo||null;bizV=r.v;bform=null;bdirty=false;err='';await load();render();var ok=G('b_ok');if(ok)ok.textContent=L('Saved ✓')}
+    catch(x){b.disabled=false;b.textContent=L('Save settings');seterr(x.message)}
   };
 }
 function bizHead(){return (bizLogo?'<img class="hlogo" src="'+bizLogo+'" alt="">':'')+'<div><b>'+esc(biz.name||'Cashflow')+'</b>'}
@@ -630,8 +714,8 @@ function bindExport(admin){
   G('x_f').onchange=function(e){if(e.target.value){exf=e.target.value;if(exf>ext)ext=exf;render()}};
   G('x_t').onchange=function(e){if(e.target.value){ext=e.target.value;if(ext<exf)exf=ext;render()}};
   if(G('x_u'))G('x_u').onchange=function(e){exu=e.target.value;render()};
-  var run=function(btn,fn,label){btn.onclick=async function(){var b=this;b.disabled=true;b.textContent='Preparing…';err='';
-    try{await fn(admin)}catch(x){seterr(x.message||'Export failed')}b.disabled=false;b.textContent=label}};
+  var run=function(btn,fn,label){btn.onclick=async function(){var b=this;b.disabled=true;b.textContent=L('Preparing…');err='';
+    try{await fn(admin)}catch(x){seterr(x.message||'Export failed')}b.disabled=false;b.textContent=L(label)}};
   run(G('x_pdf'),exportPdf,'⬇ PDF');run(G('x_xls'),exportXls,'⬇ Excel');
 }
 
@@ -705,7 +789,7 @@ function bindPeople(){
   if(G('p_q'))G('p_q').oninput=function(e){var q=e.target.value.trim().toLowerCase();$('[data-pid]').forEach(function(r){r.style.display=!q||r.dataset.q.indexOf(q)>=0?'':'none'})};
   if(G('p_add'))G('p_add').onclick=function(){psheet={name:'',phone:'',kind:'customer'};err='';render();G('pp_n').focus()};
   if(G('p_edit'))G('p_edit').onclick=function(){var p=parties.find(function(x){return x.id===partyId});psheet={id:p.id,name:p.name,phone:p.phone,kind:p.kind};err='';render()};
-  if(G('p_del'))G('p_del').onclick=async function(){var p=parties.find(function(x){return x.id===partyId});if(!confirm('Delete party "'+p.name+'"?'))return;try{await api('DELETE','/parties/'+p.id);partyId=null;await load();render()}catch(e){alert(e.message)}};
+  if(G('p_del'))G('p_del').onclick=async function(){var p=parties.find(function(x){return x.id===partyId});if(!confirm(L('Delete party "'+p.name+'"?')))return;try{await api('DELETE','/parties/'+p.id);partyId=null;await load();render()}catch(e){alert(e.message)}};
   $('[data-psx]').forEach(function(b){b.onclick=function(){psheet=null;err='';render()}});
   if(G('pp_n')){['pp_n','pp_p','pp_k'].forEach(function(i){G(i).oninput=G(i).onchange=function(){psheet.name=G('pp_n').value;psheet.phone=G('pp_p').value;psheet.kind=G('pp_k').value}});
     G('pp_p').onkeydown=function(e){if(e.key==='Enter')G('pp_save').click()}}
@@ -721,9 +805,25 @@ function partyPicker(f){
   if(f.party&&pName(f.party))h+='<p class="note" id="f_pnote" style="margin:-4px 0 10px">'+partyNote(f)+'</p>';
   return h;
 }
+function actTextHi(a){
+  var who=a.actor===me?'आपने':'<b>'+esc(a.actor)+'</b> ने',ty=a.type==='in'?'नकद आया':'नकद गया',amt=a.amount!=null?' '+fmt(a.amount):'';
+  var book=a.owner===a.actor?'':a.owner===me?' (आपकी कैशबुक में)':' (<b>'+esc(a.owner)+'</b> की कैशबुक में)';
+  switch(a.action){
+    case 'tx_add':return who+' '+ty+amt+' जोड़ा'+book;
+    case 'tx_edit':return who+' '+ty+' एंट्री बदली'+(a.prev!=null&&a.prev!==a.amount?' '+fmt(a.prev)+' → '+fmt(a.amount):amt)+book;
+    case 'tx_delete':return who+' '+ty+amt+' हटाया'+book;
+    case 'user_add':return a.owner===me?who+' आपका खाता बनाया':who+' यूज़र <b>'+esc(a.owner)+'</b> बनाया';
+    case 'user_password':return a.owner===me?who+' आपका पासवर्ड बदला':who+' <b>'+esc(a.owner)+'</b> का पासवर्ड बदला';
+    case 'user_delete':return who+' यूज़र <b>'+esc(a.owner)+'</b> हटाया';
+    case 'settings':return who+' बिज़नेस सेटिंग्स बदलीं';
+  }
+  return who+' बदलाव किया';
+}
 function partyNote(f){
   var cur=pBal(f.party),old=f.id?(txs.find(function(t){return t.id===f.id&&t.party===f.party})||null):null;
   if(old)cur-=old.type==='out'?old.amount:-old.amount;var a=parseFloat(f.amount)||0,nb=cur+(f.type==='out'?a:-a);
+  if(lang==='hi'){var lh=function(v){return v>0?'से लेना है '+fmt(v):v<0?'को देना है '+fmt(-v):'हिसाब बराबर'};
+    return esc(pName(f.party))+' '+lh(cur)+(a?' → इसके बाद <b>'+lh(nb)+'</b>':'')}
   var lb=function(v){return v>0?'owes you '+fmt(v):v<0?'you owe '+fmt(-v):'settled'};
   return esc(pName(f.party))+' '+lb(cur)+(a?' → after this <b>'+lb(nb)+'</b>':'');
 }
@@ -767,7 +867,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -776,6 +876,7 @@ function bind(admin){
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_range'))G('d_range').onchange=function(e){range=e.target.value;sumAll=false;render()};
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
+  $('[data-lang]').forEach(function(b){b.onclick=function(){setLang(b.dataset.lang)}});
   if(tab==='books')bindPeople();
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
@@ -791,7 +892,7 @@ function bind(admin){
     if(!n)return seterr('Enter a username');if(p.length<6)return seterr('Password must be at least 6 characters');
     try{if(add)await api('POST','/users',{username:n,password:p});else await api('PUT','/users/'+encodeURIComponent(n)+'/password',{password:p});sheet=null;err='';await reload()}catch(e){seterr(e.message)}
   };
-  $('[data-du]').forEach(function(b){b.onclick=async function(){var k=b.dataset.du;if(confirm('Delete user "'+k+'"? They can no longer sign in. Their entries are kept.')){try{await api('DELETE','/users/'+encodeURIComponent(k));if(fuser===k)fuser='all';await reload()}catch(e){alert(e.message)}}}});
+  $('[data-du]').forEach(function(b){b.onclick=async function(){var k=b.dataset.du;if(confirm(L('Delete user "'+k+'"? They can no longer sign in. Their entries are kept.'))){try{await api('DELETE','/users/'+encodeURIComponent(k));if(fuser===k)fuser='all';await reload()}catch(e){alert(e.message)}}}});
 }
 
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;refresh()});
