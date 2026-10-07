@@ -185,6 +185,11 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .le{padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--card);margin:0 -12px;cursor:pointer}.le .t{font-size:15px}.le .m{color:var(--mut);font-size:12px}
 .le .g{color:var(--in);font-weight:600;text-align:right}.le .o{color:var(--out);font-weight:600;text-align:right}.bal2{grid-column:1/4;text-align:right;font-size:11px;color:var(--mut);margin-top:-2px}
 .note{font-size:12px;color:var(--mut);margin:0 2px 10px}
+#toast{position:fixed;left:50%;top:calc(env(safe-area-inset-top,0px) + 12px);transform:translate(-50%,-140%);z-index:50;background:#12805c;color:#fff;font-size:14px;font-weight:600;padding:9px 16px;border-radius:22px;box-shadow:0 6px 18px rgba(0,0,0,.2);max-width:calc(100% - 32px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:transform .25s ease;pointer-events:none}
+#toast.on{transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){#toast{transition:none}}
+.lsv{display:inline-flex;align-items:center;gap:6px;background:var(--inb);color:var(--in);border-radius:18px;padding:5px 12px;font-size:13px;font-weight:600;margin-bottom:10px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.lsv small{font-weight:400;opacity:.8}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -344,7 +349,7 @@ function closeMenu(){if(menu){menu=false;history.back();render()}}
 function viewForm(){
   var f=form,isIn=f.type==='in';
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh" id="fb">←</button><b>'+(f.id?'Edit entry':(isIn?'Cash In':'Cash Out'))+'</b></div>'+(f.id?'<button class="gh" id="fdel">Delete</button>':'')+'</div></div>';
-  h+='<div class="pad" style="padding-bottom:100px"><div class="card"><div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in">Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out">Cash Out</button></div>'+
+  h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card"><div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in">Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out">Cash Out</button></div>'+
   '<div class="row2"><div class="dt"><button data-dd="-1">‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"><button data-dd="1">›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"></div></div>'+
   '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'">'+
   partyPicker(f)+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+
@@ -361,13 +366,20 @@ function viewForm(){
   G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
   if(!f.id&&!f.amount)G('f_amt').focus();
 }
+// Small confirmation pill at the top of the screen; lives outside #app so re-renders don't remove it.
+function toast(html){
+  var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.setAttribute('role','status');t.setAttribute('aria-live','polite');document.body.appendChild(t)}
+  t.innerHTML=html;t.classList.remove('on');void t.offsetWidth;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);
+}
+function savedText(d,edit){return (edit?'Updated':'Saved')+' · '+(d.type==='in'?'Cash In':'Cash Out')+' '+fmt(d.amount)+(d.party&&pName(d.party)?' · 👤 '+esc(pName(d.party)):d.notes?' · '+esc(d.notes.length>18?d.notes.slice(0,18)+'…':d.notes):'')}
 async function save(exit){
   var f=form,amt=parseFloat(f.amount);
   if(!(amt>0))return seterr('Enter a valid amount');if(!f.date)return seterr('Pick a date');
   var data={type:f.type,amount:Math.round(amt*100)/100,date:f.date,time:f.time||'',notes:f.notes.trim(),desc:f.desc.trim(),user:f.user||undefined,party:f.party||null};
   try{if(f.id)await api('PUT','/tx/'+f.id,data);else await api('POST','/tx',data);await load()}catch(e){return seterr(e.message)}
   err='';
-  if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.date=d;if(uu)form.user=uu;if(pp)form.party=pp}
+  toast('✓ '+savedText(data,!!f.id));
+  if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.date=d;if(uu)form.user=uu;if(pp)form.party=pp;form.last={d:data,at:Date.now()}}
   render();
 }
 
