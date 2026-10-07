@@ -174,6 +174,11 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .row2>div{min-width:0}.row2 input[type=date]{min-width:0;width:100%}
 .chev{color:var(--mut);font-size:22px;line-height:1;margin-left:2px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
+.tile .tn b{display:inline;font-size:inherit;margin:0}
+.tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
+.tio{display:flex;flex-direction:column;font-weight:700;font-size:16px;margin:4px 0}
+.sel-sm{width:auto;margin:0;padding:6px 8px;font-size:13px}
+.ra{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}.ra:last-child{border:0}.ra .aic{width:32px;height:32px;font-size:15px}.ra>b{white-space:nowrap}
 .dempty{text-align:center;padding:28px 16px}.dempty b{font-size:16px}.dempty .mut{margin:6px 0 14px}
 </style>
 </head>
@@ -183,7 +188,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -355,7 +360,7 @@ async function save(exit){
 // ---- Dashboard ----
 // One filter row (user + period) scopes every card below it. Charts are inline SVG sized to the
 // screen; each has a hover/tap/keyboard tooltip and the Daily summary table is their table view.
-var sumAll=false,RANGES=[['7','7 days'],['30','30 days'],['month','This month'],['all','All time']],dash=null;
+var sumAll=false,dash=null;
 var fmtC=function(n){var a=Math.abs(n),s=n<0?'−':'',u=[[1e7,'Cr'],[1e5,'L'],[1e3,'K']];for(var i=0;i<u.length;i++)if(a>=u[i][0])return s+'₹'+(+(a/u[i][0]).toFixed(1))+u[i][1];return s+'₹'+Math.round(a)};
 var sgn=function(n){return (n>0?'+':n<0?'−':'')+fmt(Math.abs(n))};
 var niceMax=function(v){if(v<=0)return 1;var p=Math.pow(10,Math.floor(Math.log10(v))),f=v/p;return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p};
@@ -364,107 +369,71 @@ var addDays=function(k,n){var d=new Date(k+'T00:00:00');d.setDate(d.getDate()+n)
 var spanDays=function(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/864e5)+1};
 
 function dashData(base){
-  var td=today(),first=base.reduce(function(m,t){return t.date&&t.date<m?t.date:m},td),start;
-  if(range==='7')start=addDays(td,-6);else if(range==='30')start=addDays(td,-29);else if(range==='month')start=td.slice(0,8)+'01';else start=first;
-  var days=spanDays(start,td),monthly=days>62,key=function(k){return monthly?k.slice(0,7):k};
-  var B=[],idx={};
-  if(monthly){for(var m=start.slice(0,7);m<=td.slice(0,7);){idx[m]=B.length;B.push({k:m,i:0,o:0,n:0});var y=+m.slice(0,4),mm=+m.slice(5)+1;if(mm>12){mm=1;y++}m=y+'-'+String(mm).padStart(2,'0')}}
-  else{for(var k=start;k<=td;k=addDays(k,1)){idx[k]=B.length;B.push({k:k,i:0,o:0,n:0})}}
-  var open=0,P={i:0,o:0,n:0},prev={i:0,o:0},pstart=range==='all'?null:addDays(start,-days),cats={},big=null;
-  base.forEach(function(t){
-    var d=t.date||'',v=t.type==='in'?t.amount:-t.amount;
-    if(d<start){open+=v;if(pstart&&d>=pstart){t.type==='in'?prev.i+=t.amount:prev.o+=t.amount}return}
-    if(d>td)return;
-    var b=B[idx[key(d)]];if(!b)return;
-    t.type==='in'?(b.i+=t.amount,P.i+=t.amount):(b.o+=t.amount,P.o+=t.amount);b.n++;P.n++;
-    if(t.type==='out'){var lb=(t.desc||nt(t)||'Other').trim(),ck=lb.toLowerCase();(cats[ck]=cats[ck]||{l:lb,v:0}).v+=t.amount;if(!big||t.amount>big.amount)big=t}
-  });
-  var run=open;B.forEach(function(b){run+=b.i-b.o;b.bal=run});
-  var cl=Object.keys(cats).map(function(k){return cats[k]}).sort(function(a,b){return b.v-a.v});
-  if(cl.length>5){var rest=cl.slice(4).reduce(function(s,c){return s+c.v},0);cl=cl.slice(0,4).concat([{l:'Other',v:rest,other:1}])}
-  var all=base.reduce(function(s,t){return s+(t.type==='in'?t.amount:-t.amount)},0);
-  return {B:B,P:P,prev:prev,hasPrev:!!pstart&&(prev.i+prev.o)>0,days:days,monthly:monthly,cats:cl,big:big,bal:all,open:open};
-}
-
-function delta(cur,prev,upGood){
-  if(!(prev>0))return '';
-  var p=Math.round((cur-prev)/prev*100);if(!p)return '<span class="dl">± 0%</span>';
-  var good=(p>0)===upGood;return '<span class="dl '+(good?'g':'b')+'">'+(p>0?'▲ ':'▼ ')+Math.abs(p)+'%</span>';
+  var td=today(),mo=td.slice(0,7),z=function(){return {i:0,o:0,n:0}},A=z(),T=z(),M=z(),B=[],idx={};
+  for(var k=addDays(td,-13);k<=td;k=addDays(k,1)){idx[k]=B.length;B.push({k:k,i:0,o:0,n:0})}
+  var add=function(x,t){t.type==='in'?x.i+=t.amount:x.o+=t.amount;x.n++};
+  base.forEach(function(t){var d=t.date||'';add(A,t);if(d===td)add(T,t);if(d.slice(0,7)===mo)add(M,t);if(idx[d]!=null)add(B[idx[d]],t)});
+  return {A:A,T:T,M:M,B:B};
 }
 
 function dashHtml(admin){
   var base=txs.filter(function(t){return admin?(fuser==='all'||t.user===fuser):t.user===me});
-  var D=dash=dashData(base),P=D.P,td=today(),rl=RANGES.filter(function(r){return r[0]===range})[0][1].toLowerCase();
-  var tdy={i:0,o:0};base.forEach(function(t){if(t.date===td)t.type==='in'?tdy.i+=t.amount:tdy.o+=t.amount});
-  var h='<div class="dfil">';
-  if(admin)h+='<select id="d_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select>';
-  h+='<div class="sgc" role="tablist">'+RANGES.map(function(r){return '<button role="tab" aria-selected="'+(range===r[0])+'" class="'+(range===r[0]?'on':'')+'" data-rg="'+r[0]+'">'+r[1]+'</button>'}).join('')+'</div></div>';
+  var D=dash=dashData(base),A=D.A,h='';
+  if(admin)h+='<div class="dfil"><select id="d_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></div>';
   if(!base.length)return h+'<div class="card dempty"><div class="aic ci" style="width:52px;height:52px;font-size:24px;margin:0 auto 10px">₹</div><b>No entries yet</b><p class="mut">Add your first Cash In or Cash Out and your dashboard fills in here.</p><button class="p" data-t="tx">Go to Entries</button></div>';
-  var net=P.i-P.o;
-  h+='<div class="hero"><small>'+(admin&&fuser==='all'?'Total balance · all users':'Total balance')+'</small><div class="hv">'+(D.bal<0?'−':'')+fmt(Math.abs(D.bal))+'</div>'+
-    '<div class="hn">Net '+rl+' <b>'+sgn(net)+'</b></div>'+
-    '<div class="hp"><div><span class="aic ci">+</span><div><small>Cash in</small><b>'+fmt(P.i)+'</b>'+(D.hasPrev?delta(P.i,D.prev.i,true):'')+'</div></div>'+
-    '<div><span class="aic co">−</span><div><small>Cash out</small><b>'+fmt(P.o)+'</b>'+(D.hasPrev?delta(P.o,D.prev.o,false):'')+'</div></div></div>'+
-    (D.hasPrev?'<div class="hc">vs previous '+(range==='month'?D.days+' days':rl.replace('this ',''))+'</div>':'')+'</div>';
-  var tile=function(l,v,s){return '<div class="tile"><small>'+l+'</small><b>'+v+'</b><span>'+s+'</span></div>'};
-  h+='<div class="tiles">'+
-    tile('Today',sgn(tdy.i-tdy.o),'+'+fmt(tdy.i)+' in · −'+fmt(tdy.o)+' out')+
-    tile('Entries',P.n,rl)+
-    tile('Avg daily spend',fmt(Math.round(P.o/D.days)),'over '+D.days+' day'+(D.days>1?'s':''))+
-    tile('Largest expense',D.big?fmt(D.big.amount):'—',D.big?esc(D.big.desc||nt(D.big)||D.big.date):'none '+rl)+'</div>';
-  h+='<div class="card cc"><div class="chd"><div><h2>Balance trend</h2><small class="mut">Running balance, '+(D.monthly?'by month':'by day')+'</small></div></div><div class="cw" id="c_bal"></div></div>';
-  h+='<div class="card cc"><div class="chd"><div><h2>Cash in vs cash out</h2><small class="mut">'+(D.monthly?'Per month':'Per day')+', '+rl+'</small></div></div>'+
-    '<div class="lg"><span><i style="background:var(--cin)"></i>Cash in <b>'+fmt(P.i)+'</b></span><span><i style="background:var(--cout)"></i>Cash out <b>'+fmt(P.o)+'</b></span></div><div class="cw" id="c_flow"></div></div>';
-  h+='<div class="card cc"><div class="chd"><div><h2>Where money went</h2><small class="mut">Cash out by description, '+rl+'</small></div></div>';
-  if(!D.cats.length)h+='<p class="mut">No cash out '+rl+'.</p>';
-  else{var cm=D.cats[0].v;D.cats.forEach(function(c){var w=c.v/cm*100,pc=P.o?Math.round(c.v/P.o*100):0;
-    h+='<div class="hb"><div class="hbl"><span>'+esc(c.l)+'</span><span><b>'+fmt(c.v)+'</b> <small class="mut">'+pc+'%</small></span></div><div class="hbt"><i style="width:'+Math.max(w,1.5)+'%'+(c.other?';background:var(--mut)':'')+'"></i></div></div>'})}
+  // total balance with all-time in / out
+  h+='<div class="hero"><small>'+(admin&&fuser==='all'?'Total balance · all users':admin?'Total balance · '+esc(fuser):'Total balance')+'</small><div class="hv">'+sgnb(A.i-A.o)+'</div>'+
+    '<div class="hp" style="margin-top:12px"><div><span class="aic ci">+</span><div><small>Total in</small><b>'+fmt(A.i)+'</b></div></div>'+
+    '<div><span class="aic co">−</span><div><small>Total out</small><b>'+fmt(A.o)+'</b></div></div></div></div>';
+  // today and this month
+  var card=function(l,x){var n=x.i-x.o;return '<div class="tile"><small>'+l+'</small><div class="tio"><span class="in">+'+fmt(x.i)+'</span><span class="out">−'+fmt(x.o)+'</span></div><span class="tn">Net <b class="'+(n<0?'out':'')+'">'+sgn(n)+'</b> · '+x.n+' entr'+(x.n===1?'y':'ies')+'</span></div>'};
+  h+='<div class="tiles">'+card('Today',D.T)+card('This month',D.M)+'</div>';
+  // last 14 days chart
+  var bi=0,bo=0;D.B.forEach(function(b){bi+=b.i;bo+=b.o});
+  h+='<div class="card cc"><div class="chd"><div><h2>Last 14 days</h2><small class="mut">Cash in vs cash out per day · tap a day</small></div></div>'+
+    '<div class="lg"><span><i style="background:var(--cin)"></i>In <b>'+fmt(bi)+'</b></span><span><i style="background:var(--cout)"></i>Out <b>'+fmt(bo)+'</b></span></div><div class="cw" id="c_flow"></div></div>';
+  // daily summary
+  var cut=range==='all'?'':addDays(today(),-(parseInt(range)||7)+1),by={};
+  base.forEach(function(t){if(cut&&t.date<cut)return;var x=by[t.date]=by[t.date]||{i:0,o:0,n:0};t.type==='in'?x.i+=t.amount:x.o+=t.amount;x.n++});
+  var dates=Object.keys(by).sort().reverse();
+  h+='<div class="card cc"><div class="chd"><div><h2>Daily summary</h2><small class="mut">'+dates.length+' day'+(dates.length===1?'':'s')+' with entries</small></div>'+
+    '<select id="d_range" class="sel-sm">'+[['7','Last 7 days'],['14','Last 14 days'],['30','Last 30 days'],['all','All time']].map(function(r){return '<option value="'+r[0]+'"'+(range===r[0]?' selected':'')+'>'+r[1]+'</option>'}).join('')+'</select></div>';
+  if(!dates.length)h+='<p class="mut">No activity in this period.</p>';
+  else h+='<div class="scroll"><table class="dt2"><tr><th>Date</th><th>In</th><th>Out</th><th>Net</th><th>#</th></tr>'+dates.slice(0,sumAll?dates.length:7).map(function(k){var x=by[k],n=x.i-x.o;
+      return '<tr><td>'+dshort(k)+'</td><td>'+(x.i?fmt(x.i):'—')+'</td><td>'+(x.o?fmt(x.o):'—')+'</td><td><span class="nb '+(n>=0?'g':'b')+'">'+sgn(n)+'</span></td><td>'+x.n+'</td></tr>'}).join('')+'</table></div>'+
+    (dates.length>7?'<button class="more" id="sum_more">'+(sumAll?'Show less':'Show all '+dates.length)+'</button>':'');
   h+='</div>';
+  // by user
   if(admin&&fuser==='all'){
     var names={};Object.keys(users).forEach(function(k){names[k]=1});txs.forEach(function(t){names[t.user]=1});
-    h+='<div class="card cc"><div class="chd"><div><h2>People</h2><small class="mut">All-time balance per cashbook · tap to open</small></div></div>';
+    h+='<div class="card cc"><div class="chd"><div><h2>By user</h2><small class="mut">All-time · tap to open their entries</small></div></div>';
     Object.keys(names).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i+=t.amount:o+=t.amount}});
-      h+='<button class="urow" data-vu="'+esc(k)+'"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(k)+(users[k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut">+'+fmt(i)+' · −'+fmt(o)+' · '+n+' entries</small></span><b class="ub">'+(i-o<0?'−':'')+fmt(Math.abs(i-o))+'</b></button>'});
+      h+='<button class="urow" data-vu="'+esc(k)+'"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(k)+(users[k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut"><span class="in">+'+fmt(i)+'</span> · <span class="out">−'+fmt(o)+'</span> · '+n+' entr'+(n===1?'y':'ies')+'</small></span><b class="ub'+(i-o<0?' neg':'')+'">'+sgnb(i-o)+'</b></button>'});
     h+='</div>';
   }
-  var rows=D.B.filter(function(b){return b.n}).reverse();
-  h+='<div class="card cc"><div class="chd"><div><h2>'+(D.monthly?'Monthly':'Daily')+' summary</h2><small class="mut">'+rows.length+' '+(D.monthly?'month':'day')+(rows.length===1?'':'s')+' with entries</small></div></div>';
-  if(!rows.length)h+='<p class="mut">No entries '+rl+'.</p>';
-  else h+='<div class="scroll"><table class="dt2"><tr><th>'+(D.monthly?'Month':'Date')+'</th><th>In</th><th>Out</th><th>Net</th></tr>'+rows.slice(0,sumAll?rows.length:7).map(function(b){var n=b.i-b.o;return '<tr><td>'+dshort(b.k)+'</td><td>'+(b.i?fmt(b.i):'—')+'</td><td>'+(b.o?fmt(b.o):'—')+'</td><td><span class="nb '+(n>=0?'g':'b')+'">'+sgn(n)+'</span></td></tr>'}).join('')+'</table></div>'+(rows.length>7?'<button class="more" id="sum_more">'+(sumAll?'Show less':'Show all '+rows.length)+'</button>':'');
+  // recent activity: latest entries by when they were added
+  var rec=base.slice().sort(function(a,b){return (b.ts||0)-(a.ts||0)}).slice(0,10);
+  h+='<div class="card cc"><div class="chd"><div><h2>Recent activity</h2><small class="mut">Latest '+rec.length+' entries added</small></div></div>';
+  rec.forEach(function(t){var inn=t.type==='in';
+    h+='<div class="ra"><span class="aic '+(inn?'ci':'co')+'">'+(inn?'+':'−')+'</span><div class="un"><b>'+esc(nt(t)||'(no notes)')+'</b><small class="mut">'+esc(t.user)+' added · '+dshort(t.date)+' '+t.date.slice(0,4)+(t.ts?' · '+hhmm(new Date(t.ts)):'')+'</small></div><b class="'+(inn?'in':'out')+'">'+(inn?'+':'−')+fmt(t.amount)+'</b></div>'});
   return h+'</div>';
 }
 
-// Draw both charts into their containers at the current width, then wire hover/tap/keyboard.
+// Draw the 14-day chart at the current width, then wire hover/tap/keyboard.
 function dashCharts(){
-  var D=dash,cb=document.getElementById('c_bal'),cf=document.getElementById('c_flow');if(!D||!cb||!cf)return;
-  var W=cb.clientWidth,H=170,L=46,R=10,T=14,Bm=24,pw=W-L-R,ph=H-T-Bm,n=D.B.length;
-  var x=function(i){return L+(n===1?pw/2:i*pw/(n-1))};
-  // balance trend
-  var lo=Math.min(0,D.B.reduce(function(m,b){return Math.min(m,b.bal)},Infinity)),hi=Math.max(0,D.B.reduce(function(m,b){return Math.max(m,b.bal)},-Infinity));
-  var top=niceMax(Math.max(hi,1)),bot=lo<0?-niceMax(-lo):0,y=function(v){return T+ph-(v-bot)/(top-bot)*ph};
-  var ticks=bot<0?[bot,0,top]:[0,top/2,top],s='';
-  ticks.forEach(function(v){s+='<line class="gl'+(v===0?' z':'')+'" x1="'+L+'" x2="'+(W-R)+'" y1="'+y(v)+'" y2="'+y(v)+'"/><text class="ax" x="'+(L-6)+'" y="'+(y(v)+4)+'" text-anchor="end">'+fmtC(v)+'</text>'});
-  var pts=D.B.map(function(b,i){return x(i).toFixed(1)+','+y(b.bal).toFixed(1)});
-  s+='<path class="ar" d="M'+x(0)+','+y(Math.max(bot,0))+' L'+pts.join(' L')+' L'+x(n-1)+','+y(Math.max(bot,0))+' Z"/>';
-  s+='<polyline class="ln" points="'+pts.join(' ')+'"/>';
-  var lb=D.B[n-1];s+='<circle class="dot" cx="'+x(n-1)+'" cy="'+y(lb.bal)+'" r="4"/>';
-  s+=xlabels(D.B,x,H);
-  s+='<g class="hv" style="display:none"><line class="xh" y1="'+T+'" y2="'+(T+ph)+'"/><circle class="dot" r="5"/></g>';
-  cb.innerHTML='<svg width="'+W+'" height="'+H+'" tabindex="0" role="img" aria-label="Balance trend, now '+esc(fmt(lb.bal))+'. Use arrow keys to read values.">'+s+'</svg><div class="tip"></div>';
-  hover(cb,n,x,function(i,g){var b=D.B[i];g.querySelector('line').setAttribute('x1',x(i));g.querySelector('line').setAttribute('x2',x(i));var c=g.querySelector('circle');c.setAttribute('cx',x(i));c.setAttribute('cy',y(b.bal));
-    return '<b>'+dshort(b.k)+'</b><div>Balance <b>'+(b.bal<0?'−':'')+fmt(Math.abs(b.bal))+'</b></div>'+(b.n?'<div class="mut">'+sgn(b.i-b.o)+' that '+(D.monthly?'month':'day')+'</div>':'')});
-  // cash in vs out
+  var D=dash,cf=document.getElementById('c_flow');if(!D||!cf)return;
+  var W=cf.clientWidth,H=170,L=46,R=10,T=14,Bm=24,pw=W-L-R,ph=H-T-Bm,n=D.B.length,s='';
   var mx=niceMax(D.B.reduce(function(m,b){return Math.max(m,b.i,b.o)},0)),yf=function(v){return T+ph-v/mx*ph},band=pw/n,bw=Math.max(1.5,Math.min(12,(band-2-Math.min(6,band*.3))/2));
-  var xc=function(i){return L+band*(i+.5)};s='';
+  var xc=function(i){return L+band*(i+.5)};
   [0,mx/2,mx].forEach(function(v){s+='<line class="gl'+(v===0?' z':'')+'" x1="'+L+'" x2="'+(W-R)+'" y1="'+yf(v)+'" y2="'+yf(v)+'"/><text class="ax" x="'+(L-6)+'" y="'+(yf(v)+4)+'" text-anchor="end">'+fmtC(v)+'</text>'});
   s+='<rect class="hbg" style="display:none" y="'+T+'" height="'+ph+'" width="'+band+'"/>';
   var bar=function(cx,v,cls){if(!v)return '';var h0=Math.max(2,v/mx*ph),r=Math.min(4,bw/2,h0),x0=cx,y0=T+ph-h0;
     return '<path class="'+cls+'" d="M'+x0+','+(T+ph)+' V'+(y0+r)+' Q'+x0+','+y0+' '+(x0+r)+','+y0+' H'+(x0+bw-r)+' Q'+(x0+bw)+','+y0+' '+(x0+bw)+','+(y0+r)+' V'+(T+ph)+' Z"/>'};
   D.B.forEach(function(b,i){s+=bar(xc(i)-bw-1,b.i,'bi2')+bar(xc(i)+1,b.o,'bo2')});
   s+=xlabels(D.B,xc,H);
-  cf.innerHTML='<svg width="'+W+'" height="'+H+'" tabindex="0" role="img" aria-label="Cash in versus cash out per '+(D.monthly?'month':'day')+'. Use arrow keys to read values.">'+s+'</svg><div class="tip"></div>';
+  cf.innerHTML='<svg width="'+W+'" height="'+H+'" tabindex="0" role="img" aria-label="Cash in versus cash out per day, last 14 days. Use arrow keys to read values.">'+s+'</svg><div class="tip"></div>';
   hover(cf,n,xc,function(i){var b=D.B[i],r=cf.querySelector('.hbg');r.style.display='';r.setAttribute('x',xc(i)-band/2);
-    return '<b>'+dshort(b.k)+'</b><div><i class="k" style="background:var(--cin)"></i>In <b>'+fmt(b.i)+'</b></div><div><i class="k" style="background:var(--cout)"></i>Out <b>'+fmt(b.o)+'</b></div><div class="mut">Net '+sgn(b.i-b.o)+'</div>'},function(){cf.querySelector('.hbg').style.display='none'});
+    return '<b>'+dshort(b.k)+'</b><div><i class="k" style="background:var(--cin)"></i>In <b>'+fmt(b.i)+'</b></div><div><i class="k" style="background:var(--cout)"></i>Out <b>'+fmt(b.o)+'</b></div><div class="mut">Net '+sgn(b.i-b.o)+' · '+b.n+' entr'+(b.n===1?'y':'ies')+'</div>'},function(){cf.querySelector('.hbg').style.display='none'});
 }
 function xlabels(B,x,H){var n=B.length,ids=n<=1?[0]:n===2?[0,1]:[0,Math.floor((n-1)/2),n-1],s='';
   ids.forEach(function(i,j){s+='<text class="ax" x="'+x(i)+'" y="'+(H-6)+'" text-anchor="'+(ids.length>1&&j===0?'start':j===ids.length-1&&ids.length>1?'end':'middle')+'">'+dshort(B[i].k)+'</text>'});return s}
@@ -683,7 +652,7 @@ function bind(admin){
   if(G('q'))G('q').oninput=function(e){q=e.target.value;focusQ=true;render()};
   if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
-  $('[data-rg]').forEach(function(b){b.onclick=function(){range=b.dataset.rg;render()}});
+  if(G('d_range'))G('d_range').onchange=function(e){range=e.target.value;sumAll=false;render()};
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
