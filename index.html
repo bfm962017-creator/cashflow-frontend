@@ -190,6 +190,8 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 @media(prefers-reduced-motion:reduce){#toast{transition:none}}
 .lsv{display:inline-flex;align-items:center;gap:6px;background:var(--inb);color:var(--in);border-radius:18px;padding:5px 12px;font-size:13px;font-weight:600;margin-bottom:10px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .lsv small{font-weight:400;opacity:.8}
+.urw{border-bottom:1px solid var(--bd)}.urw:last-child{border:0}.urw .urow{border:0}
+.pcnt{display:inline-block;margin:-4px 0 10px 48px;border:0;background:var(--bg);color:var(--pri);font-size:12px;font-weight:600;padding:4px 10px;border-radius:14px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -205,7 +207,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -241,7 +243,7 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -494,7 +496,7 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&t.user===me&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Balance '+fn(B[t.id])+'</div></div>';
   });
   h+='<div class="fixb"><div class="bbtn"><button class="gi" data-new="in">Cash In</button><button class="go" data-new="out">Cash Out</button></div><div class="tot"><div><small class="in">Total Cash In</small><b class="in">'+fn(ti)+'</b></div><div><small class="out">Total Cash Out</small><b class="out">'+fn(to)+'</b></div><div><small>Balance</small><b>'+fn(ti-to)+'</b></div></div></div>';
@@ -637,37 +639,47 @@ function bindExport(admin){
 // Parties are private to the user who added them. A party's balance comes from that user's own
 // cash entries linked to it: Cash Out to them = "you gave" (they owe you), Cash In = "you got".
 var PK={customer:'Customer',supplier:'Supplier',staff:'Staff',other:'Other'};
-function myPartyTx(id){return txs.filter(function(t){return t.party===id&&t.user===me})}
-function pBal(id){return myPartyTx(id).reduce(function(s,t){return s+(t.type==='out'?t.amount:-t.amount)},0)}
+// The admin also receives everyone's parties (read-only); only the owner can add, edit or delete one.
+// A party's balance comes from its owner's cash entries linked to it.
+function myParties(){return parties.filter(function(p){return p.owner===me})}
+function partyTx(id){var p=parties.find(function(x){return x.id===id});return p?txs.filter(function(t){return t.party===id&&t.user===p.owner}):[]}
+function pBal(id){return partyTx(id).reduce(function(s,t){return s+(t.type==='out'?t.amount:-t.amount)},0)}
 function pName(id){var p=parties.find(function(x){return x.id===id});return p?p.name:''}
 function balLabel(b){return b>0?'Will get':b<0?'Will give':'Settled'}
 function peopleHtml(admin){
   if(partyId&&parties.some(function(p){return p.id===partyId}))return partyHtml();
-  partyId=null;var seg=admin?pseg:'parties',h='';
-  if(admin)h+='<div class="sgc" style="margin-bottom:12px"><button data-ps="users" class="'+(seg==='users'?'on':'')+'">Users</button><button data-ps="parties" class="'+(seg==='parties'?'on':'')+'">My parties</button></div>';
-  return h+(seg==='users'?booksHtml():partiesHtml());
+  partyId=null;
+  if(admin&&puser)return '<div class="pbar"><button class="sm" data-pub="1">← Users</button><span class="un"><b>'+esc(puser)+'\'s parties</b><small class="mut">View only</small></span></div>'+
+    partiesHtml(parties.filter(function(p){return p.owner===puser}),'user');
+  var seg=admin?pseg:'parties',h='';
+  if(admin)h+='<div class="sgc" style="margin-bottom:12px">'+[['users','Users'],['parties','My parties'],['all','All parties']].map(function(s){return '<button data-ps="'+s[0]+'" class="'+(seg===s[0]?'on':'')+'">'+s[1]+'</button>'}).join('')+'</div>';
+  return h+(seg==='users'?booksHtml():seg==='all'?partiesHtml(parties,'all'):partiesHtml(myParties(),'mine'));
 }
-function partiesHtml(){
-  var get=0,give=0,ng=0,nv=0,rows=parties.map(function(p){var b=pBal(p.id),last='';myPartyTx(p.id).forEach(function(t){if(t.date>last)last=t.date});if(b>0){get+=b;ng++}else if(b<0){give-=b;nv++}return {p:p,b:b,last:last}});
-  var h='<div class="pt"><div><small>You will get</small><b class="in">'+fmt(get)+'</b><small>from '+ng+' part'+(ng===1?'y':'ies')+'</small></div><div><small>You will give</small><b class="out">'+fmt(give)+'</b><small>to '+nv+' part'+(nv===1?'y':'ies')+'</small></div></div>';
-  if(parties.length>4)h+='<input id="p_q" placeholder="🔍  Search party name or phone" autocomplete="off">';
-  if(!rows.length)h+='<div class="card dempty"><b>No parties yet</b><p class="mut">Add customers, suppliers or staff to see how much each one owes you or you owe them. Only you can see your parties.</p></div>';
+// mode: 'mine' (your own, editable), 'user' (one user's, admin view), 'all' (everyone's, admin view)
+function partiesHtml(list,mode){
+  var get=0,give=0,ng=0,nv=0,rows=list.map(function(p){var b=pBal(p.id),last='';partyTx(p.id).forEach(function(t){if(t.date>last)last=t.date});if(b>0){get+=b;ng++}else if(b<0){give-=b;nv++}return {p:p,b:b,last:last}});
+  var who=mode==='mine'?'You':mode==='user'?esc(puser):'Everyone';
+  var h='<div class="pt"><div><small>'+who+' will get</small><b class="in">'+fmt(get)+'</b><small>from '+ng+' part'+(ng===1?'y':'ies')+'</small></div><div><small>'+who+' will give</small><b class="out">'+fmt(give)+'</b><small>to '+nv+' part'+(nv===1?'y':'ies')+'</small></div></div>';
+  if(list.length>4)h+='<input id="p_q" placeholder="🔍  Search party'+(mode==='all'?', phone or user':' name or phone')+'" autocomplete="off">';
+  if(!rows.length)h+='<div class="card dempty"><b>No parties yet</b><p class="mut">'+(mode==='mine'?'Add customers, suppliers or staff to see how much each one owes you or you owe them. Only you can see your parties.':mode==='user'?esc(puser)+' has not added any parties.':'No one has added any parties yet.')+'</p></div>';
   else{h+='<div class="card ul">';rows.forEach(function(r){var p=r.p;
-    h+='<button class="urow pr" data-pid="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone)+' · ':'')+(r.last?'last '+dshort(r.last):'no entries yet')+'</small></span><span class="r"><small>'+balLabel(r.b)+'</small><b class="'+(r.b>0?'in':r.b<0?'out':'')+'">'+fmt(Math.abs(r.b))+'</b></span></button>'});
+    h+='<button class="urow pr" data-pid="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone+' '+p.owner).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(mode==='all'?'👤 '+esc(p.owner)+' · ':'')+(p.phone?esc(p.phone)+' · ':'')+(r.last?'last '+dshort(r.last):'no entries yet')+'</small></span><span class="r"><small>'+balLabel(r.b)+'</small><b class="'+(r.b>0?'in':r.b<0?'out':'')+'">'+fmt(Math.abs(r.b))+'</b></span></button>'});
     h+='</div>'}
-  h+='<button class="p" id="p_add" style="width:100%;margin-top:4px">+ Add party</button>';
+  if(mode==='mine')h+='<button class="p" id="p_add" style="width:100%;margin-top:4px">+ Add party</button>';
   return h+partySheet();
 }
 function partyHtml(){
-  var p=parties.find(function(x){return x.id===partyId}),b=pBal(p.id),list=myPartyTx(p.id).slice().sort(cmp),run=0,rows=[];
+  var p=parties.find(function(x){return x.id===partyId}),ro=p.owner!==me,b=pBal(p.id),list=partyTx(p.id).slice().sort(cmp),run=0,rows=[];
   list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;rows.push({t:t,bal:run})});rows.reverse();
-  var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b>'+(p.phone?'<small class="mut">'+esc(p.phone)+'</small>':'')+'</span><button class="ib" id="p_edit" aria-label="Edit party">✎</button></div>';
-  h+='<div class="pbal '+(b>0?'g':b<0?'b':'')+'"><small>'+(b>0?esc(p.name)+' owes you':b<0?'You owe '+esc(p.name):'All settled with '+esc(p.name))+'</small><div class="hv">'+fmt(Math.abs(b))+'</div><div class="acts">'+
-    (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(list.length?'':'<button id="p_del">🗑 Delete</button>')+'</div></div>';
-  h+='<div class="lh"><span>Entry</span><span class="out">You gave</span><span class="in">You got</span></div>';
-  if(!rows.length)h+='<p class="mut pad">No entries yet. Use the buttons below to record money you gave to or got from '+esc(p.name)+'.</p>';
+  var you=ro?esc(p.owner):'you',You=ro?esc(p.owner):'You';
+  var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone):'')+(ro?(p.phone?' · ':'')+'👤 '+esc(p.owner)+'\'s party · view only':'')+'</small></span>'+(ro?'':'<button class="ib" id="p_edit" aria-label="Edit party">✎</button>')+'</div>';
+  h+='<div class="pbal '+(b>0?'g':b<0?'b':'')+'"><small>'+(b>0?esc(p.name)+' owes '+you:b<0?You+' owe'+(ro?'s ':' ')+esc(p.name):'All settled with '+esc(p.name))+'</small><div class="hv">'+fmt(Math.abs(b))+'</div><div class="acts">'+
+    (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(!ro&&!list.length?'<button id="p_del">🗑 Delete</button>':'')+'</div></div>';
+  h+='<div class="lh"><span>Entry</span><span class="out">'+You+' gave</span><span class="in">'+You+' got</span></div>';
+  if(!rows.length)h+='<p class="mut pad">No entries yet.'+(ro?'':' Use the buttons below to record money you gave to or got from '+esc(p.name)+'.')+'</p>';
   rows.forEach(function(r){var t=r.t;
     h+='<div class="le" data-e="'+esc(t.id)+'"><div><div class="t">'+esc(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+'</div><div class="m">'+dshort(t.date)+' '+t.date.slice(0,4)+(t.desc?' · '+esc(t.desc):'')+'</div></div><div class="o">'+(t.type==='out'?fn(t.amount):'')+'</div><div class="g">'+(t.type==='in'?fn(t.amount):'')+'</div><div class="bal2">'+(r.bal>0?'Will get ':r.bal<0?'Will give ':'Settled ')+fn(Math.abs(r.bal))+'</div></div>'});
+  if(ro)return h;
   return h+'<div style="height:90px"></div><div class="fixb"><div class="bbtn"><button class="go" data-pnew="out">You gave ₹</button><button class="gi" data-pnew="in">You got ₹</button></div></div>'+partySheet();
 }
 function waLink(p,b){
@@ -688,6 +700,8 @@ function bindPeople(){
   $('[data-ps]').forEach(function(b){b.onclick=function(){pseg=b.dataset.ps;render()}});
   $('[data-pid]').forEach(function(b){b.onclick=function(){partyId=b.dataset.pid;render();window.scrollTo(0,0)}});
   $('[data-pback]').forEach(function(b){b.onclick=function(){partyId=null;render()}});
+  $('[data-pu]').forEach(function(b){b.onclick=function(){puser=b.dataset.pu;partyId=null;render();window.scrollTo(0,0)}});
+  $('[data-pub]').forEach(function(b){b.onclick=function(){puser=null;render()}});
   if(G('p_q'))G('p_q').oninput=function(e){var q=e.target.value.trim().toLowerCase();$('[data-pid]').forEach(function(r){r.style.display=!q||r.dataset.q.indexOf(q)>=0?'':'none'})};
   if(G('p_add'))G('p_add').onclick=function(){psheet={name:'',phone:'',kind:'customer'};err='';render();G('pp_n').focus()};
   if(G('p_edit'))G('p_edit').onclick=function(){var p=parties.find(function(x){return x.id===partyId});psheet={id:p.id,name:p.name,phone:p.phone,kind:p.kind};err='';render()};
@@ -702,8 +716,8 @@ function bindPeople(){
 // Party picker on the Cash In / Cash Out form: only your own parties, only in your own cashbook.
 function partyPicker(f){
   if(f.user&&f.user!==me)return '';
-  if(!parties.length)return '<p class="note">Tip: add customers and suppliers under <b>'+(users[me]&&users[me].role==='admin'?'People → My parties':'Parties')+'</b> to track what each one owes.</p>';
-  var h='<label class="fl" for="f_party">Party (optional)</label><select id="f_party"><option value="">No party</option>'+parties.map(function(p){return '<option value="'+esc(p.id)+'"'+(f.party===p.id?' selected':'')+'>'+esc(p.name)+' · '+PK[p.kind]+'</option>'}).join('')+'</select>';
+  var mine=myParties();if(!mine.length)return '<p class="note">Tip: add customers and suppliers under <b>'+(users[me]&&users[me].role==='admin'?'People → My parties':'Parties')+'</b> to track what each one owes.</p>';
+  var h='<label class="fl" for="f_party">Party (optional)</label><select id="f_party"><option value="">No party</option>'+mine.map(function(p){return '<option value="'+esc(p.id)+'"'+(f.party===p.id?' selected':'')+'>'+esc(p.name)+' · '+PK[p.kind]+'</option>'}).join('')+'</select>';
   if(f.party&&pName(f.party))h+='<p class="note" id="f_pnote" style="margin:-4px 0 10px">'+partyNote(f)+'</p>';
   return h;
 }
@@ -720,8 +734,9 @@ function booksHtml(){
   var rows=Object.keys(names).map(function(k){var b=0,n=0,last='';txs.forEach(function(t){if(t.user===k){n++;b+=t.type==='in'?t.amount:-t.amount;if(t.date>last)last=t.date}});tot+=b;return {k:k,b:b,n:n,last:last}})
     .sort(function(a,b){return (users[b.k]?1:0)-(users[a.k]?1:0)||a.k.localeCompare(b.k)});
   var h='<div class="uhd"><div><h2 style="margin:0">Cashbooks</h2><small class="mut">'+rows.length+' users · tap one to open</small></div><div style="text-align:right"><small class="mut">Total balance</small><div><b>'+sgnb(tot)+'</b></div></div></div><div class="card ul">';
-  rows.forEach(function(r){
-    h+='<button class="urow" data-vu="'+esc(r.k)+'"><span class="av sm">'+esc(r.k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(r.k)+(users[r.k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut">'+r.n+' entr'+(r.n===1?'y':'ies')+(r.last?' · last '+dshort(r.last):'')+'</small></span><b class="ub'+(r.b<0?' neg':'')+'">'+sgnb(r.b)+'</b><span class="chev">›</span></button>'});
+  rows.forEach(function(r){var pc=parties.filter(function(p){return p.owner===r.k}).length;
+    h+='<div class="urw"><button class="urow" data-vu="'+esc(r.k)+'"><span class="av sm">'+esc(r.k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(r.k)+(users[r.k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut">'+r.n+' entr'+(r.n===1?'y':'ies')+(r.last?' · last '+dshort(r.last):'')+'</small></span><b class="ub'+(r.b<0?' neg':'')+'">'+sgnb(r.b)+'</b><span class="chev">›</span></button>'+
+      (pc?'<button class="pcnt" data-pu="'+esc(r.k)+'">👤 '+pc+' part'+(pc===1?'y':'ies')+' ›</button>':'')+'</div>'});
   return h+'</div>';
 }
 
@@ -753,7 +768,7 @@ function bind(admin){
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
   $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
-  $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null}tab=b.dataset.t;err='';render()}});
+  $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
   if(G('q'))G('q').oninput=function(e){q=e.target.value;focusQ=true;render()};
