@@ -62,6 +62,18 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 .pad{padding:12px}.tx-pg{padding-bottom:160px}
 .hdr{background:var(--hb);color:#fff;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .ht{display:flex;justify-content:space-between;align-items:center;padding:12px 14px}
+.mbtn{font-size:22px;line-height:1;padding:4px 10px}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20}
+.drw{position:fixed;top:0;bottom:0;left:0;width:min(290px,82vw);background:var(--card);z-index:21;display:flex;flex-direction:column;overflow-y:auto;box-shadow:2px 0 16px rgba(0,0,0,.25);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drw.an{animation:dslide .2s ease-out}.ov.an{animation:dfade .2s}
+@keyframes dslide{from{transform:translateX(-100%)}}@keyframes dfade{from{opacity:0}}
+.dhd{background:var(--hb);color:#fff;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 18px;display:flex;gap:12px;align-items:center}
+.dhd b{display:block;font-size:16px}.dhd small{opacity:.85;font-size:12px}
+.av{width:44px;height:44px;flex:none;border-radius:50%;background:#fff;color:#1565c0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:20px}
+.dsec{padding:12px 16px 4px;font-size:12px;color:var(--mut);text-transform:uppercase;letter-spacing:.04em}
+.mi{display:flex;gap:14px;align-items:center;width:100%;text-align:left;border:0;border-radius:0;background:transparent;padding:12px 16px;font-size:15px}
+.mi.on{background:var(--bg);color:var(--pri);font-weight:600}.mi span{width:22px;text-align:center}
+.dft{margin-top:auto;border-top:1px solid var(--bd)}
 .ht b{font-size:19px}.ht small{display:block;opacity:.85;font-size:12px}
 .gh{background:rgba(255,255,255,.18);color:#fff;border:0}
 .nav{display:flex;gap:6px;padding:0 10px 10px}
@@ -95,7 +107,13 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,menu=false,menuAnim=false;
+// Side menu items. To add a feature, add a line here and a view for its id in viewMain.
+var MENU=[
+  {id:'tx',icon:'📒',label:'Entries'},
+  {id:'dash',icon:'📊',label:'Dashboard'},
+  {id:'users',icon:'👥',label:'Users',admin:true}
+];
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
 var esc=function(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/"/g,'&quot;')};
 var ymd=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -123,12 +141,12 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 async function init(){
-  app.addEventListener('click',function(e){if(e.target.id!=='inst'||!inst)return;var p=inst;inst=null;p.prompt();p.userChoice.finally(function(){refresh()})});
+  app.addEventListener('click',function(e){if(e.target.id!=='inst'||!inst)return;var p=inst;inst=null;p.prompt();if(menu){menu=false;history.back()}render();p.userChoice.finally(function(){refresh()})});
   app.addEventListener('input',function(e){var m={f_date:'date',f_time:'time',f_amt:'amount',f_notes:'notes',f_desc:'desc'}[e.target.id];if(form&&m)form[m]=e.target.value});
   try{needsSetup=(await api('GET','/bootstrap')).needsSetup}catch(e){app.innerHTML='<div class="card ctr"><h2>Cannot reach server</h2><p class="err">'+esc(e.message)+'</p></div>';return}
   token=sget();
@@ -171,12 +189,24 @@ function viewLogin(){
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['users','Users']);
-  var h='<div class="hdr"><div class="ht"><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div><div style="display:flex;gap:6px">'+instBtn('gh')+'<button class="gh" id="out">Sign out</button></div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
   h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):usersHtml())+'</div>';
+  if(menu)h+=menuHtml(admin);
+  document.body.style.overflow=menu?'hidden':'';
   app.innerHTML=h;
   bind(admin);
   if(tab==='tx'&&showQ&&focusQ){var qi=document.getElementById('q');if(qi){qi.focus();qi.setSelectionRange(qi.value.length,qi.value.length)}}
 }
+
+function menuHtml(admin){
+  var an=menuAnim?' an':'';menuAnim=false;
+  var h='<div class="ov'+an+'" data-close></div><nav class="drw'+an+'" aria-label="Menu"><div class="dhd"><div class="av">'+esc((me||'?').charAt(0).toUpperCase())+'</div><div><b>'+esc(me)+'</b><small>'+(admin?'Admin':'User')+'</small></div></div><div class="dsec">Menu</div>';
+  MENU.forEach(function(m){if(m.admin&&!admin)return;h+='<button class="mi'+(tab===m.id?' on':'')+'" data-m="'+m.id+'"><span>'+m.icon+'</span>'+esc(m.label)+'</button>'});
+  return h+'<div class="dft">'+(inst?'<button class="mi" id="inst"><span>📲</span>Install app</button>':'')+'<button class="mi" id="out"><span>🚪</span>Sign out</button></div></nav>';
+}
+// The open menu holds a history entry so the phone's back button closes it.
+function openMenu(){menu=true;menuAnim=true;history.pushState({menu:1},'');render()}
+function closeMenu(){if(menu){menu=false;history.back();render()}}
 
 function viewForm(){
   var f=form,isIn=f.type==='in';
@@ -282,7 +312,10 @@ function usersHtml(){
 
 function bind(admin){
   var $=function(x){return app.querySelectorAll(x)},G=function(i){return document.getElementById(i)};
-  G('out').onclick=signout;
+  G('out')&&(G('out').onclick=function(){closeMenu();signout()});
+  G('menu').onclick=openMenu;
+  $('[data-close]').forEach(function(b){b.onclick=closeMenu});
+  $('[data-m]').forEach(function(b){b.onclick=function(){tab=b.dataset.m;err='';closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -305,6 +338,8 @@ function bind(admin){
 }
 
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;refresh()});
+window.addEventListener('popstate',function(){if(menu){menu=false;render()}});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMenu()});
 window.addEventListener('appinstalled',function(){inst=null;refresh()});
 if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});
 

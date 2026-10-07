@@ -1,7 +1,7 @@
 // Cashflow service worker: keeps the app shell available offline.
 // Same-origin files are network-first (so updates show up right away) with a cache fallback.
 // API calls go to another origin and are never cached.
-var CACHE = 'cashflow-v1';
+var CACHE = 'cashflow-v2';
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 
