@@ -173,6 +173,18 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .bbtn .gpdf{background:#c2362b}.bbtn .gxls{background:#12805c}.bbtn button:disabled{opacity:.5}
 .row2>div{min-width:0}.row2 input[type=date]{min-width:0;width:100%}
 .chev{color:var(--mut);font-size:22px;line-height:1;margin-left:2px}
+.pt{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}.pt div{border-radius:14px;padding:14px;background:var(--card);border:1px solid var(--bd)}
+.pt small{display:block;color:var(--mut);font-size:12px}.pt b{font-size:20px}
+.pr .r{text-align:right;flex:none}.pr .r small{display:block;font-size:11px;color:var(--mut)}.pr .r b{font-size:15px}
+.tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--mut);margin-left:6px;font-weight:500;vertical-align:1px}
+.pbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.pbar .un b{font-size:16px}
+.pbal{border-radius:16px;padding:16px;margin-bottom:12px;background:var(--card);border:1px solid var(--bd)}.pbal.g{background:var(--inb);border-color:transparent}.pbal.b{background:var(--outb);border-color:transparent}
+.pbal small{color:var(--mut)}.pbal .hv{font-size:34px}.pbal.g .hv{color:var(--in)}.pbal.b .hv{color:var(--out)}
+.acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}.acts>*{flex:1;font-size:13px;padding:8px;text-align:center;text-decoration:none;color:var(--tx);background:var(--card);min-width:90px}
+.lh,.le{display:grid;grid-template-columns:1fr 84px 84px;gap:4px}.lh{padding:6px 12px;font-size:12px;font-weight:600;color:var(--mut);background:var(--bg);margin:0 -12px}.lh span+span{text-align:right}
+.le{padding:10px 12px;border-bottom:1px solid var(--bd);background:var(--card);margin:0 -12px;cursor:pointer}.le .t{font-size:15px}.le .m{color:var(--mut);font-size:12px}
+.le .g{color:var(--in);font-weight:600;text-align:right}.le .o{color:var(--out);font-weight:600;text-align:right}.bal2{grid-column:1/4;text-align:right;font-size:11px;color:var(--mut);margin-top:-2px}
+.note{font-size:12px;color:var(--mut);margin:0 2px 10px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -188,7 +200,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -212,7 +224,7 @@ var tm=function(t){return t.time||(t.ts?hhmm(new Date(t.ts)):'')};
 var fn=function(n){return Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})};
 var cmp=function(a,b){return (a.date||'').localeCompare(b.date||'')||tm(a).localeCompare(tm(b))||(a.ts||0)-(b.ts||0)};
 var newForm=function(ty){return {type:ty,date:today(),time:hhmm(new Date()),amount:'',notes:'',desc:''}};
-var refresh=function(){if(form||sheet||bdirty)return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&app.contains(a))return;render()};
+var refresh=function(){if(form||sheet||psheet||bdirty)return;var a=document.activeElement;if(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)&&app.contains(a))return;render()};
 var rid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
 var uname=function(s){return String(s||'').trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'')};
 
@@ -224,9 +236,9 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
-  biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
+  parties=d.parties||[];biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 async function init(){
@@ -236,7 +248,7 @@ async function init(){
   token=sget();
   if(token&&!needsSetup){try{await load()}catch(e){token=null;sset(null)}}
   render();
-  setInterval(function(){if(!token||form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
+  setInterval(function(){if(!token||form||sheet||psheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
 }
 
 function render(){
@@ -272,9 +284,9 @@ function viewLogin(){
 
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
-  var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['books','Users']);
+  var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'&&admin?booksHtml():tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -335,7 +347,7 @@ function viewForm(){
   h+='<div class="pad" style="padding-bottom:100px"><div class="card"><div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in">Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out">Cash Out</button></div>'+
   '<div class="row2"><div class="dt"><button data-dd="-1">‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"><button data-dd="1">›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"></div></div>'+
   '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'">'+
-  '<input id="f_notes" placeholder="Notes (name / party)" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+
+  partyPicker(f)+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+
   (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div></div>'+
   '<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>';
   app.innerHTML=h;
@@ -344,16 +356,18 @@ function viewForm(){
   app.querySelectorAll('[data-ty]').forEach(function(b){b.onclick=function(){form.type=b.dataset.ty;render()}});
   app.querySelectorAll('[data-dd]').forEach(function(b){b.onclick=function(){var d=new Date((form.date||today())+'T00:00:00');d.setDate(d.getDate()+parseInt(b.dataset.dd));form.date=ymd(d);render()}});
   if(G('fdel'))G('fdel').onclick=async function(){if(confirm('Delete this entry?')){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
+  if(G('f_party'))G('f_party').onchange=function(e){form.party=e.target.value||null;render()};
+  G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n)n.innerHTML=partyNote(form)});
   G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
   if(!f.id&&!f.amount)G('f_amt').focus();
 }
 async function save(exit){
   var f=form,amt=parseFloat(f.amount);
   if(!(amt>0))return seterr('Enter a valid amount');if(!f.date)return seterr('Pick a date');
-  var data={type:f.type,amount:Math.round(amt*100)/100,date:f.date,time:f.time||'',notes:f.notes.trim(),desc:f.desc.trim(),user:f.user||undefined};
+  var data={type:f.type,amount:Math.round(amt*100)/100,date:f.date,time:f.time||'',notes:f.notes.trim(),desc:f.desc.trim(),user:f.user||undefined,party:f.party||null};
   try{if(f.id)await api('PUT','/tx/'+f.id,data);else await api('POST','/tx',data);await load()}catch(e){return seterr(e.message)}
   err='';
-  if(exit||f.id){form=null}else{var d=f.date,uu=f.user;form=newForm(f.type);form.date=d;if(uu)form.user=uu}
+  if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.date=d;if(uu)form.user=uu;if(pp)form.party=pp}
   render();
 }
 
@@ -468,7 +482,7 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&t.user===me&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Balance '+fn(B[t.id])+'</div></div>';
   });
   h+='<div class="fixb"><div class="bbtn"><button class="gi" data-new="in">Cash In</button><button class="go" data-new="out">Cash Out</button></div><div class="tot"><div><small class="in">Total Cash In</small><b class="in">'+fn(ti)+'</b></div><div><small class="out">Total Cash Out</small><b class="out">'+fn(to)+'</b></div><div><small>Balance</small><b>'+fn(ti-to)+'</b></div></div></div>';
@@ -607,6 +621,87 @@ function bindExport(admin){
   run(G('x_pdf'),exportPdf,'⬇ PDF');run(G('x_xls'),exportXls,'⬇ Excel');
 }
 
+// ---- People tab: Users (admin) and Parties ----
+// Parties are private to the user who added them. A party's balance comes from that user's own
+// cash entries linked to it: Cash Out to them = "you gave" (they owe you), Cash In = "you got".
+var PK={customer:'Customer',supplier:'Supplier',staff:'Staff',other:'Other'};
+function myPartyTx(id){return txs.filter(function(t){return t.party===id&&t.user===me})}
+function pBal(id){return myPartyTx(id).reduce(function(s,t){return s+(t.type==='out'?t.amount:-t.amount)},0)}
+function pName(id){var p=parties.find(function(x){return x.id===id});return p?p.name:''}
+function balLabel(b){return b>0?'Will get':b<0?'Will give':'Settled'}
+function peopleHtml(admin){
+  if(partyId&&parties.some(function(p){return p.id===partyId}))return partyHtml();
+  partyId=null;var seg=admin?pseg:'parties',h='';
+  if(admin)h+='<div class="sgc" style="margin-bottom:12px"><button data-ps="users" class="'+(seg==='users'?'on':'')+'">Users</button><button data-ps="parties" class="'+(seg==='parties'?'on':'')+'">My parties</button></div>';
+  return h+(seg==='users'?booksHtml():partiesHtml());
+}
+function partiesHtml(){
+  var get=0,give=0,ng=0,nv=0,rows=parties.map(function(p){var b=pBal(p.id),last='';myPartyTx(p.id).forEach(function(t){if(t.date>last)last=t.date});if(b>0){get+=b;ng++}else if(b<0){give-=b;nv++}return {p:p,b:b,last:last}});
+  var h='<div class="pt"><div><small>You will get</small><b class="in">'+fmt(get)+'</b><small>from '+ng+' part'+(ng===1?'y':'ies')+'</small></div><div><small>You will give</small><b class="out">'+fmt(give)+'</b><small>to '+nv+' part'+(nv===1?'y':'ies')+'</small></div></div>';
+  if(parties.length>4)h+='<input id="p_q" placeholder="🔍  Search party name or phone" autocomplete="off">';
+  if(!rows.length)h+='<div class="card dempty"><b>No parties yet</b><p class="mut">Add customers, suppliers or staff to see how much each one owes you or you owe them. Only you can see your parties.</p></div>';
+  else{h+='<div class="card ul">';rows.forEach(function(r){var p=r.p;
+    h+='<button class="urow pr" data-pid="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone)+' · ':'')+(r.last?'last '+dshort(r.last):'no entries yet')+'</small></span><span class="r"><small>'+balLabel(r.b)+'</small><b class="'+(r.b>0?'in':r.b<0?'out':'')+'">'+fmt(Math.abs(r.b))+'</b></span></button>'});
+    h+='</div>'}
+  h+='<button class="p" id="p_add" style="width:100%;margin-top:4px">+ Add party</button>';
+  return h+partySheet();
+}
+function partyHtml(){
+  var p=parties.find(function(x){return x.id===partyId}),b=pBal(p.id),list=myPartyTx(p.id).slice().sort(cmp),run=0,rows=[];
+  list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;rows.push({t:t,bal:run})});rows.reverse();
+  var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b>'+(p.phone?'<small class="mut">'+esc(p.phone)+'</small>':'')+'</span><button class="ib" id="p_edit" aria-label="Edit party">✎</button></div>';
+  h+='<div class="pbal '+(b>0?'g':b<0?'b':'')+'"><small>'+(b>0?esc(p.name)+' owes you':b<0?'You owe '+esc(p.name):'All settled with '+esc(p.name))+'</small><div class="hv">'+fmt(Math.abs(b))+'</div><div class="acts">'+
+    (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(list.length?'':'<button id="p_del">🗑 Delete</button>')+'</div></div>';
+  h+='<div class="lh"><span>Entry</span><span class="out">You gave</span><span class="in">You got</span></div>';
+  if(!rows.length)h+='<p class="mut pad">No entries yet. Use the buttons below to record money you gave to or got from '+esc(p.name)+'.</p>';
+  rows.forEach(function(r){var t=r.t;
+    h+='<div class="le" data-e="'+esc(t.id)+'"><div><div class="t">'+esc(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+'</div><div class="m">'+dshort(t.date)+' '+t.date.slice(0,4)+(t.desc?' · '+esc(t.desc):'')+'</div></div><div class="o">'+(t.type==='out'?fn(t.amount):'')+'</div><div class="g">'+(t.type==='in'?fn(t.amount):'')+'</div><div class="bal2">'+(r.bal>0?'Will get ':r.bal<0?'Will give ':'Settled ')+fn(Math.abs(r.bal))+'</div></div>'});
+  return h+'<div style="height:90px"></div><div class="fixb"><div class="bbtn"><button class="go" data-pnew="out">You gave ₹</button><button class="gi" data-pnew="in">You got ₹</button></div></div>'+partySheet();
+}
+function waLink(p,b){
+  var bn=biz.name||'us',d=dlabel(today()).replace(/^\w+, /,''),msg='Hello '+p.name+',\n'+
+    (b>0?'Your pending balance with *'+bn+'* is *₹'+fn(b)+'* as of '+d+'.\nPlease pay at your earliest. Thank you!':b<0?'*'+bn+'* has ₹'+fn(-b)+' payable to you as of '+d+'.\nThank you!':'Your account with *'+bn+'* is fully settled as of '+d+'. Thank you!')+(biz.name?'\n— '+biz.name:'');
+  var ph=(p.phone||'').replace(/\D/g,'');if(ph.length===10)ph='91'+ph;
+  return 'https://wa.me/'+(ph.length>=11?ph:'')+'?text='+encodeURIComponent(msg);
+}
+function partySheet(){
+  if(!psheet)return '';var f=psheet;
+  return '<div class="ov" data-psx></div><div class="sheet" role="dialog" aria-label="'+(f.id?'Edit party':'Add party')+'"><h2>'+(f.id?'Edit party':'Add party')+'</h2>'+
+    '<input id="pp_n" placeholder="Name" value="'+esc(f.name)+'" autocomplete="off"><input id="pp_p" type="tel" inputmode="tel" placeholder="Phone (optional, for WhatsApp)" value="'+esc(f.phone)+'">'+
+    '<select id="pp_k">'+Object.keys(PK).map(function(k){return '<option value="'+k+'"'+(f.kind===k?' selected':'')+'>'+PK[k]+'</option>'}).join('')+'</select>'+
+    '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" data-psx>Cancel</button><button id="pp_save">'+(f.id?'Save':'Add party')+'</button></div></div>';
+}
+function bindPeople(){
+  var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};
+  $('[data-ps]').forEach(function(b){b.onclick=function(){pseg=b.dataset.ps;render()}});
+  $('[data-pid]').forEach(function(b){b.onclick=function(){partyId=b.dataset.pid;render();window.scrollTo(0,0)}});
+  $('[data-pback]').forEach(function(b){b.onclick=function(){partyId=null;render()}});
+  if(G('p_q'))G('p_q').oninput=function(e){var q=e.target.value.trim().toLowerCase();$('[data-pid]').forEach(function(r){r.style.display=!q||r.dataset.q.indexOf(q)>=0?'':'none'})};
+  if(G('p_add'))G('p_add').onclick=function(){psheet={name:'',phone:'',kind:'customer'};err='';render();G('pp_n').focus()};
+  if(G('p_edit'))G('p_edit').onclick=function(){var p=parties.find(function(x){return x.id===partyId});psheet={id:p.id,name:p.name,phone:p.phone,kind:p.kind};err='';render()};
+  if(G('p_del'))G('p_del').onclick=async function(){var p=parties.find(function(x){return x.id===partyId});if(!confirm('Delete party "'+p.name+'"?'))return;try{await api('DELETE','/parties/'+p.id);partyId=null;await load();render()}catch(e){alert(e.message)}};
+  $('[data-psx]').forEach(function(b){b.onclick=function(){psheet=null;err='';render()}});
+  if(G('pp_n')){['pp_n','pp_p','pp_k'].forEach(function(i){G(i).oninput=G(i).onchange=function(){psheet.name=G('pp_n').value;psheet.phone=G('pp_p').value;psheet.kind=G('pp_k').value}});
+    G('pp_p').onkeydown=function(e){if(e.key==='Enter')G('pp_save').click()}}
+  if(G('pp_save'))G('pp_save').onclick=async function(){var f=psheet;if(!f.name.trim())return seterr('Enter a name');
+    try{var r=f.id?await api('PUT','/parties/'+f.id,f):await api('POST','/parties',f);psheet=null;err='';partyId=r.id;await load();render();window.scrollTo(0,0)}catch(e){seterr(e.message)}};
+  $('[data-pnew]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.pnew);form.party=partyId;err='';render()}});
+}
+// Party picker on the Cash In / Cash Out form: only your own parties, only in your own cashbook.
+function partyPicker(f){
+  if(f.user&&f.user!==me)return '';
+  if(!parties.length)return '<p class="note">Tip: add customers and suppliers under <b>'+(users[me]&&users[me].role==='admin'?'People → My parties':'Parties')+'</b> to track what each one owes.</p>';
+  var h='<label class="fl" for="f_party">Party (optional)</label><select id="f_party"><option value="">No party</option>'+parties.map(function(p){return '<option value="'+esc(p.id)+'"'+(f.party===p.id?' selected':'')+'>'+esc(p.name)+' · '+PK[p.kind]+'</option>'}).join('')+'</select>';
+  if(f.party&&pName(f.party))h+='<p class="note" id="f_pnote" style="margin:-4px 0 10px">'+partyNote(f)+'</p>';
+  return h;
+}
+function partyNote(f){
+  var cur=pBal(f.party),old=f.id?(txs.find(function(t){return t.id===f.id&&t.party===f.party})||null):null;
+  if(old)cur-=old.type==='out'?old.amount:-old.amount;var a=parseFloat(f.amount)||0,nb=cur+(f.type==='out'?a:-a);
+  var lb=function(v){return v>0?'owes you '+fmt(v):v<0?'you owe '+fmt(-v):'settled'};
+  return esc(pName(f.party))+' '+lb(cur)+(a?' → after this <b>'+lb(nb)+'</b>':'');
+}
+
 // Users tab (admin): every cashbook with its balance; tapping one opens it in Entries with a back button.
 function booksHtml(){
   var names={},tot=0;Object.keys(users).forEach(function(k){names[k]=1});txs.forEach(function(t){names[t.user]=1});
@@ -646,7 +741,7 @@ function bind(admin){
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
   $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm('Discard unsaved settings?'))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
-  $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
+  $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
   if(G('q'))G('q').oninput=function(e){q=e.target.value;focusQ=true;render()};
@@ -654,11 +749,12 @@ function bind(admin){
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_range'))G('d_range').onchange=function(e){range=e.target.value;sumAll=false;render()};
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
+  if(tab==='books')bindPeople();
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
-  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||''};err='';render()}}});
+  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null};err='';render()}}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
   $('[data-rp]').forEach(function(b){b.onclick=function(){sheet={mode:'pw',user:b.dataset.rp};err='';render();G('nu_p').focus()}});
   $('[data-sx]').forEach(function(b){b.onclick=function(){sheet=null;err='';render()}});
