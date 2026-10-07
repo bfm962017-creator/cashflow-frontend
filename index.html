@@ -155,6 +155,12 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 .av.sm{width:36px;height:36px;font-size:15px;background:var(--bg);color:var(--pri);border:1px solid var(--bd)}
 .dt2 td{font-variant-numeric:tabular-nums}.nb{font-weight:600}.nb.g{color:var(--in)}.nb.b{color:var(--out)}
 .more{width:100%;margin-top:10px;border:0;background:var(--bg);color:var(--pri);font-weight:600;padding:10px}
+.uhd{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.ul{padding:4px 14px}.ur{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--bd)}.ur:last-child{border:0}
+.ub.neg{color:var(--out)}.ib{width:38px;height:38px;flex:none;padding:0;border-radius:10px;background:var(--bg);font-size:16px;display:inline-flex;align-items:center;justify-content:center}
+span.ib{background:transparent;border:0}
+.sheet{position:fixed;left:50%;bottom:0;transform:translateX(-50%);width:100%;max-width:640px;z-index:21;background:var(--card);border-radius:16px 16px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom,0px));box-shadow:0 -6px 20px rgba(0,0,0,.2);animation:sup .2s ease-out}
+@keyframes sup{from{transform:translate(-50%,100%)}}
 .dempty{text-align:center;padding:28px 16px}.dempty b{font-size:16px}.dempty .mut{margin:6px 0 14px}
 </style>
 </head>
@@ -164,7 +170,7 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='30',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -186,7 +192,7 @@ var tm=function(t){return t.time||(t.ts?hhmm(new Date(t.ts)):'')};
 var fn=function(n){return Number(n).toLocaleString('en-IN',{maximumFractionDigits:2})};
 var cmp=function(a,b){return (a.date||'').localeCompare(b.date||'')||tm(a).localeCompare(tm(b))||(a.ts||0)-(b.ts||0)};
 var newForm=function(ty){return {type:ty,date:today(),time:hhmm(new Date()),amount:'',notes:'',desc:''}};
-var refresh=function(){if(form)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;render()};
+var refresh=function(){if(form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;render()};
 var rid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
 var uname=function(s){return String(s||'').trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'')};
 
@@ -198,7 +204,7 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+function signout(){menu=false;sheet=null;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0)}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
@@ -209,7 +215,7 @@ async function init(){
   token=sget();
   if(token&&!needsSetup){try{await load()}catch(e){token=null;sset(null)}}
   render();
-  setInterval(function(){if(!token||form)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(function(){if(!form)render()}).catch(function(){})},20000);
+  setInterval(function(){if(!token||form||sheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(function(){if(!form)render()}).catch(function(){})},20000);
 }
 
 function render(){
@@ -245,7 +251,7 @@ function viewLogin(){
 
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
-  var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['users','Users']);
+  var tabs=[['tx','Entries'],['dash','Dashboard']];
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
   h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):usersHtml())+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
@@ -484,16 +490,25 @@ function txHtml(admin){
   return h;
 }
 
+// Users screen (admin, opened from the side menu): names with balances, add / change password / delete.
+// Add and change-password use a small bottom sheet; sheet = {mode:'add'} or {mode:'pw',user:name}.
 function usersHtml(){
-  var h='<div class="card"><h2>Create user login</h2><input id="nu_n" placeholder="Username" autocapitalize="none"><input id="nu_p" type="password" placeholder="Password (min 6 chars)">'+
-  '<div class="err" id="e">'+esc(err)+'</div><button class="p" id="cu">Create user</button></div>';
-  h+='<div class="card"><h2>All users</h2>';
-  Object.keys(users).sort().forEach(function(k){
-    var u=users[k],ti=0,to=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?ti+=t.amount:to+=t.amount}});
-    h+='<div class="tx" style="flex-direction:column;gap:8px"><div class="row" style="justify-content:space-between"><div><div class="n">'+esc(k)+'</div><div class="m">'+(u.role==='admin'?'Admin (you)':'User')+' · '+n+' entries</div></div><div style="text-align:right"><div class="m">In <b class="in">'+fmt(ti)+'</b> · Out <b class="out">'+fmt(to)+'</b></div><div><b>Balance '+fmt(ti-to)+'</b></div></div></div>'+
-    '<div class="row"><button class="sm p" data-vu="'+esc(k)+'">View cashbook</button>'+(u.role==='admin'?'':'<button class="sm" data-rp="'+esc(k)+'">Reset password</button><button class="sm" data-du="'+esc(k)+'">Delete</button>')+'</div></div>';
+  var h='<div class="uhd"><div><h2 style="margin:0">Users</h2><small class="mut">'+Object.keys(users).length+' logins · all-time balance</small></div><button class="p" id="u_add">+ Add user</button></div><div class="card ul">';
+  Object.keys(users).sort(function(a,b){return (users[b].role==='admin')-(users[a].role==='admin')||a.localeCompare(b)}).forEach(function(k){
+    var u=users[k],bal=0;txs.forEach(function(t){if(t.user===k)bal+=t.type==='in'?t.amount:-t.amount});
+    h+='<div class="ur"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><div class="un"><b>'+esc(k)+'</b><small class="mut">'+(u.role==='admin'?'Admin (you)':'User')+'</small></div>'+
+      '<b class="ub'+(bal<0?' neg':'')+'">'+(bal<0?'−':'')+fmt(Math.abs(bal))+'</b>'+
+      '<button class="ib" data-rp="'+esc(k)+'" aria-label="Change password for '+esc(k)+'" title="Change password">🔑</button>'+
+      (u.role==='admin'?'<span class="ib"></span>':'<button class="ib" data-du="'+esc(k)+'" aria-label="Delete '+esc(k)+'" title="Delete user">🗑</button>')+'</div>';
   });
-  return h+'</div>';
+  h+='</div>';
+  if(sheet){var add=sheet.mode==='add';
+    h+='<div class="ov" data-sx></div><div class="sheet" role="dialog" aria-label="'+(add?'Add user':'Change password')+'"><h2>'+(add?'Add user':'Change password')+'</h2>'+
+      (add?'<input id="nu_n" placeholder="Username" autocapitalize="none" autocomplete="off">':'<p class="mut" style="margin:-6px 0 12px">For <b>'+esc(sheet.user)+'</b></p>')+
+      '<input id="nu_p" type="password" placeholder="'+(add?'Password':'New password')+' (min 6 chars)" autocomplete="new-password">'+
+      '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" data-sx>Cancel</button><button id="u_save">'+(add?'Create user':'Save password')+'</button></div></div>';
+  }
+  return h;
 }
 
 function bind(admin){
@@ -502,7 +517,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){tab=b.dataset.m;err='';closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){tab=b.dataset.m;err='';sheet=null;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -516,14 +531,16 @@ function bind(admin){
   $('[data-all]').forEach(function(b){b.onclick=function(){fuser='all';render()}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
   $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||''};err='';render()}}});
-  var cu=G('cu');
-  if(cu)cu.onclick=async function(){
-    var n=uname(G('nu_n').value),p=G('nu_p').value;
+  if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
+  $('[data-rp]').forEach(function(b){b.onclick=function(){sheet={mode:'pw',user:b.dataset.rp};err='';render();G('nu_p').focus()}});
+  $('[data-sx]').forEach(function(b){b.onclick=function(){sheet=null;err='';render()}});
+  if(G('nu_p'))G('nu_p').onkeydown=function(e){if(e.key==='Enter')G('u_save').click()};
+  if(G('u_save'))G('u_save').onclick=async function(){
+    var p=G('nu_p').value,add=sheet.mode==='add',n=add?uname(G('nu_n').value):sheet.user;
     if(!n)return seterr('Enter a username');if(p.length<6)return seterr('Password must be at least 6 characters');
-    try{await api('POST','/users',{username:n,password:p});err='';await reload()}catch(e){seterr(e.message)}
+    try{if(add)await api('POST','/users',{username:n,password:p});else await api('PUT','/users/'+encodeURIComponent(n)+'/password',{password:p});sheet=null;err='';await reload()}catch(e){seterr(e.message)}
   };
-  $('[data-du]').forEach(function(b){b.onclick=async function(){var k=b.dataset.du;if(confirm('Delete user "'+k+'"? Their entries are kept.')){try{await api('DELETE','/users/'+encodeURIComponent(k));if(fuser===k)fuser='all';await reload()}catch(e){alert(e.message)}}}});
-  $('[data-rp]').forEach(function(b){b.onclick=async function(){var k=b.dataset.rp,p=prompt('New password for '+k+' (min 6 chars)');if(!p||p.length<6)return;try{await api('PUT','/users/'+encodeURIComponent(k)+'/password',{password:p});alert('Password updated')}catch(e){alert(e.message)}}});
+  $('[data-du]').forEach(function(b){b.onclick=async function(){var k=b.dataset.du;if(confirm('Delete user "'+k+'"? They can no longer sign in. Their entries are kept.')){try{await api('DELETE','/users/'+encodeURIComponent(k));if(fuser===k)fuser='all';await reload()}catch(e){alert(e.message)}}}});
 }
 
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;refresh()});
