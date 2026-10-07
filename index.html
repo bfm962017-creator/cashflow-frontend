@@ -74,6 +74,16 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 .mi{display:flex;gap:14px;align-items:center;width:100%;text-align:left;border:0;border-radius:0;background:transparent;padding:12px 16px;font-size:15px}
 .mi.on{background:var(--bg);color:var(--pri);font-weight:600}.mi span{width:22px;text-align:center}
 .dft{margin-top:auto;border-top:1px solid var(--bd)}
+.drw.rt{left:auto;right:0;width:min(360px,92vw);box-shadow:-2px 0 16px rgba(0,0,0,.25)}.drw.rt.an{animation:dslider .2s ease-out}
+@keyframes dslider{from{transform:translateX(100%)}}
+.dhd.nh{justify-content:space-between}.dhd.nh b{font-size:17px}
+.bell{position:relative;padding:7px 9px;line-height:0}
+.bdg{position:absolute;top:-5px;right:-5px;min-width:19px;height:19px;padding:0 5px;border-radius:10px;background:#e53935;color:#fff;font-size:11px;font-weight:700;line-height:15px;border:2px solid var(--hb)}
+.ai{display:flex;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bd);position:relative}
+.ai.nw{background:var(--bg)}.ai.nw:after{content:"";position:absolute;right:12px;top:16px;width:8px;height:8px;border-radius:50%;background:var(--pri)}
+.aic{width:34px;height:34px;flex:none;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;background:var(--bg);border:1px solid var(--bd)}
+.aic.ci{background:var(--inb);color:var(--in);border-color:transparent}.aic.co{background:var(--outb);color:var(--out);border-color:transparent}
+.ab{font-size:14px;padding-right:14px}.ab .m{color:var(--mut);font-size:12px;margin-top:2px}
 .ht b{font-size:19px}.ht small{display:block;opacity:.85;font-size:12px}
 .gh{background:rgba(255,255,255,.18);color:#fff;border:0}
 .nav{display:flex;gap:6px;padding:0 10px 10px}
@@ -107,7 +117,7 @@ th:first-child,td:first-child{text-align:left}th{color:var(--mut);font-weight:50
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,menu=false,menuAnim=false;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='14',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -141,8 +151,8 @@ async function api(m,u,b){
   if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
   return d;
 }
-function signout(){menu=false;document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
-async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs}
+function signout(){menu=false;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0)}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 async function init(){
@@ -189,9 +199,10 @@ function viewLogin(){
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];if(admin)tabs.push(['users','Users']);
-  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button><div><b>Cashflow</b><small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
   h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):usersHtml())+'</div>';
-  if(menu)h+=menuHtml(admin);
+  if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
+  badge(unread());
   document.body.style.overflow=menu?'hidden':'';
   app.innerHTML=h;
   bind(admin);
@@ -204,8 +215,43 @@ function menuHtml(admin){
   MENU.forEach(function(m){if(m.admin&&!admin)return;h+='<button class="mi'+(tab===m.id?' on':'')+'" data-m="'+m.id+'"><span>'+m.icon+'</span>'+esc(m.label)+'</button>'});
   return h+'<div class="dft">'+(inst?'<button class="mi" id="inst"><span>📲</span>Install app</button>':'')+'<button class="mi" id="out"><span>🚪</span>Sign out</button></div></nav>';
 }
+// Notifications: everything other people did that you have not opened the bell for yet.
+function unread(){return activity.filter(function(a){return a.actor!==me&&a.ts>seenAt}).length}
+function badge(n){try{if(navigator.setAppBadge)n?navigator.setAppBadge(n):navigator.clearAppBadge()}catch(e){}}
+function bellHtml(){var n=unread();return '<button class="gh bell" id="bell" aria-label="Notifications'+(n?' ('+n+' new)':'')+'"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>'+(n?'<span class="bdg">'+(n>9?'9+':n)+'</span>':'')+'</button>'}
+function ago(ts){var s=(Date.now()-ts)/1000;if(s<60)return 'Just now';if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';var d=new Date(ts);if(s<172800)return 'Yesterday';return String(d.getDate()).padStart(2,'0')+' '+MN[d.getMonth()]+(d.getFullYear()!==new Date().getFullYear()?' '+d.getFullYear():'')}
+function actText(a){
+  var who=a.actor===me?'You':'<b>'+esc(a.actor)+'</b>',ty=a.type==='in'?'Cash In':'Cash Out',amt=a.amount!=null?' '+fmt(a.amount):'';
+  var book=a.owner===a.actor?'':a.owner===me?' in your book':' in <b>'+esc(a.owner)+'</b>\'s book';
+  switch(a.action){
+    case 'tx_add':return who+' added '+ty+amt+book;
+    case 'tx_edit':return who+' edited a '+ty+' entry'+(a.prev!=null&&a.prev!==a.amount?' '+fmt(a.prev)+' → '+fmt(a.amount):amt)+book;
+    case 'tx_delete':return who+' deleted '+ty+amt+book;
+    case 'user_add':return a.owner===me?who+' created your account':who+' created user <b>'+esc(a.owner)+'</b>';
+    case 'user_password':return a.owner===me?who+' reset your password':who+' reset <b>'+esc(a.owner)+'</b>\'s password';
+    case 'user_delete':return who+' deleted user <b>'+esc(a.owner)+'</b>';
+  }
+  return who+' made a change';
+}
+function actIcon(a){
+  if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑']}[a.action]||['','•'];
+}
+function notifHtml(){
+  var an=menuAnim?' an':'';menuAnim=false;
+  var h='<div class="ov'+an+'" data-close></div><nav class="drw rt'+an+'" aria-label="Notifications"><div class="dhd nh"><b>Recent activity</b><button class="gh" data-close>✕</button></div>';
+  if(!activity.length)h+='<p class="mut pad">No activity yet. Adds, edits and deletes will show up here.</p>';
+  activity.forEach(function(a){var ic=actIcon(a),nw=a.actor!==me&&a.ts>prevSeen;
+    h+='<div class="ai'+(nw?' nw':'')+'"><div class="aic '+ic[0]+'">'+ic[1]+'</div><div class="ab">'+actText(a)+(a.notes?'<div class="m">'+esc(a.notes)+'</div>':'')+'<div class="m">'+ago(a.ts)+'</div></div></div>'});
+  return h+'</nav>';
+}
+async function openNotif(){
+  prevSeen=seenAt;activity.forEach(function(x){seenAt=Math.max(seenAt,x.ts)});openMenu('notif');
+  try{var r=await api('POST','/activity/seen');seenAt=Math.max(seenAt,r.seenAt)}catch(e){}
+}
+
 // The open menu holds a history entry so the phone's back button closes it.
-function openMenu(){menu=true;menuAnim=true;history.pushState({menu:1},'');render()}
+function openMenu(kind){menu=typeof kind==='string'?kind:'menu';menuAnim=true;history.pushState({menu:1},'');render()}
 function closeMenu(){if(menu){menu=false;history.back();render()}}
 
 function viewForm(){
@@ -313,7 +359,8 @@ function usersHtml(){
 function bind(admin){
   var $=function(x){return app.querySelectorAll(x)},G=function(i){return document.getElementById(i)};
   G('out')&&(G('out').onclick=function(){closeMenu();signout()});
-  G('menu').onclick=openMenu;
+  G('menu').onclick=function(){openMenu('menu')};
+  G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
   $('[data-m]').forEach(function(b){b.onclick=function(){tab=b.dataset.m;err='';closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){tab=b.dataset.t;err='';render()}});
