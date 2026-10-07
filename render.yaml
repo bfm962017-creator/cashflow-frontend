@@ -1,0 +1,9 @@
+# Cashflow FRONTEND (static site)
+services:
+  - type: web
+    name: cashflow-web
+    runtime: static
+    buildCommand: echo "no build needed"
+    staticPublishPath: .
+    branch: main
+    autoDeploy: true
