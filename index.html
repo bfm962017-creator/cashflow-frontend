@@ -208,6 +208,8 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .chg div{display:grid;grid-template-columns:86px 1fr;gap:6px;padding:2px 0}.chg div>span{color:var(--mut)}.chg p{margin:0}
 .old{text-decoration:line-through;color:var(--out)}.new{color:var(--in);font-weight:700}
 .note2{font-size:12px;color:var(--mut);text-align:center;margin-top:10px}
+.warn{background:#fffbeb;border-color:#fcd34d}.warn b{color:#92400e}.warn p{margin:6px 0 0;font-size:14px;color:#78350f}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .warn{background:#2a2108;border-color:#6b5310}:root:not([data-theme="light"]) .warn p,:root:not([data-theme="light"]) .warn b{color:#fcd34d}}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -263,6 +265,7 @@ var MENU=[
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
   {id:'deleted',icon:'🗑',label:'Deleted entries',admin:true},
+  {id:'backup',icon:'💾',label:'Download backup'},
   {id:'lang',icon:'🌐',label:'Language / भाषा'}
 ];
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
@@ -370,7 +373,11 @@ var HI={
 'Changes made before history was switched on are not shown.':'इतिहास शुरू होने से पहले के बदलाव नहीं दिखते।','History is saved automatically and can’t be edited.':'इतिहास अपने आप सेव होता है और बदला नहीं जा सकता।',
 'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
 'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
-'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
+'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Download backup':'बैकअप डाउनलोड करें','💾 Backup':'💾 बैकअप','Save a copy of your data to your phone':'अपने डेटा की कॉपी फ़ोन में सेव करें','Last backup':'आखिरी बैकअप','Never':'कभी नहीं','Last backup on this phone:':'इस फ़ोन पर आखिरी बैकअप:',
+'One Excel file with every user’s entries, all parties and the user list.':'एक Excel फ़ाइल जिसमें सभी यूज़र की एंट्री, सभी पार्टियां और यूज़र लिस्ट है।','One Excel file with your entries and your parties.':'एक Excel फ़ाइल जिसमें आपकी एंट्री और पार्टियां हैं।',
+'Keep it on your phone, email it to yourself or upload it to Google Drive.':'इसे फ़ोन में रखें, खुद को ईमेल करें या Google Drive पर अपलोड करें।','⬇ Download backup (Excel)':'⬇ बैकअप डाउनलोड करें (Excel)','Backup downloaded':'बैकअप डाउनलोड हो गया','⚠ Important':'⚠ ज़रूरी',
+'The free Render database is deleted on':'Render का फ्री डेटाबेस इस तारीख को हट जाएगा:','6 Nov 2026':'6 नव 2026','Upgrade it in Render to keep your data safe permanently. A backup file keeps a copy, but the app cannot run from it.':'डेटा हमेशा सुरक्षित रखने के लिए Render में अपग्रेड करें। बैकअप फ़ाइल में कॉपी रहती है, पर ऐप उससे नहीं चल सकता।',
+'Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
 [/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^Bal (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
@@ -445,7 +452,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'&&admin?deletedHtml():tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'&&admin?deletedHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -707,6 +714,51 @@ function bindDeleted(){
     try{var r=await api('POST','/deleted/'+b.dataset.rs+'/restore');delList=delList.filter(function(d){return String(d.id)!==b.dataset.rs});await load();toast('✓ '+L('Restored')+' · '+L(r.type==='in'?'Cash In':'Cash Out')+' '+fmt(r.amount));render()}
     catch(e){b.disabled=false;alert(L(e.message))}}});
 }
+
+// ---- Backup: one Excel file with everything this login can see ----
+// Admin: all users' entries, all parties and the user list. Others: their own entries and parties.
+function lastBackup(){try{return +localStorage.getItem('cf_backup_'+me)||0}catch(e){return 0}}
+function backupHtml(admin){
+  var lb=lastBackup(),mine=admin?txs:txs.filter(function(t){return t.user===me}),pl=admin?parties:myParties();
+  var h='<div class="uhd"><div><h2 style="margin:0">💾 Backup</h2><small class="mut">Save a copy of your data to your phone</small></div></div><div class="card">';
+  h+='<div class="exs" style="grid-template-columns:repeat(3,1fr)"><div><small>Entries</small><b>'+mine.length+'</b></div><div><small>Parties</small><b>'+pl.length+'</b></div><div><small>'+(admin?'Users':'Last backup')+'</small><b>'+(admin?Object.keys(users).length:(lb?dshort(ymd(new Date(lb))):'Never'))+'</b></div></div>';
+  if(admin)h+='<p class="mut" style="margin:0 0 12px">Last backup on this phone: <b>'+(lb?when(lb):'Never')+'</b></p>';
+  h+='<p class="mut" style="margin:0 0 12px">'+(admin?'One Excel file with every user’s entries, all parties and the user list.':'One Excel file with your entries and your parties.')+' Keep it on your phone, email it to yourself or upload it to Google Drive.</p>';
+  h+='<div class="err" id="e">'+esc(err)+'</div><button class="p" id="bk_go" style="width:100%">⬇ Download backup (Excel)</button></div>';
+  if(admin)h+='<div class="card warn"><b>⚠ Important</b><p>The free Render database is deleted on <b>6 Nov 2026</b>. Upgrade it in Render to keep your data safe permanently. A backup file keeps a copy, but the app cannot run from it.</p></div>';
+  return h;
+}
+async function backupXls(admin){
+  await loadLibs('xls');
+  var wb=new ExcelJS.Workbook(),now=new Date(),list=(admin?txs:txs.filter(function(t){return t.user===me})).slice().sort(cmp),pl=admin?parties:myParties();
+  var head=function(ws,cols){ws.columns=cols.map(function(c){return {header:c[0],key:c[1],width:c[2]}});var r=ws.getRow(1);r.font={bold:true,color:{argb:'FFFFFFFF'}};r.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0F766E'}};r.height=20;ws.views=[{state:'frozen',ySplit:1}]};
+  var money='#,##0.00;-#,##0.00';
+  var ti=0,to=0;list.forEach(function(t){t.type==='in'?ti+=t.amount:to+=t.amount});
+  var sm=wb.addWorksheet('Summary');sm.columns=[{width:26},{width:40}];
+  [['Business',biz.name||'Cashflow'],['Address',(biz.address||'').split(/\s*\n\s*/).join(', ')],['Backup taken',now.toLocaleString('en-IN')],['Taken by',me+(admin?' (admin)':'')],[''],
+   ['Entries',list.length],['Total cash in',ti],['Total cash out',to],['Balance',ti-to],['Parties',pl.length]].concat(admin?[['Users',Object.keys(users).length]]:[])
+   .forEach(function(r,i){var row=sm.getRow(i+1);row.values=r;row.getCell(1).font={bold:true};if(typeof r[1]==='number'&&i>=6&&i<=8)row.getCell(2).numFmt=money});
+  sm.getRow(1).getCell(2).font={bold:true,size:14};
+  var es=wb.addWorksheet('Entries');
+  head(es,[['Date','date',12],['Time','time',10],['User','user',12],['Type','type',10],['Cash In','in',13],['Cash Out','out',13],['Balance','bal',14],['Notes','notes',28],['Description','desc',22],['Party','party',20],['Edited','edited',8],['Added at','added',20],['Entry ID','id',38]]);
+  var run=0;list.forEach(function(t){run+=t.type==='in'?t.amount:-t.amount;
+    var r=es.addRow({date:new Date(t.date+'T00:00:00Z'),time:tm(t)?t12(tm(t)):'',user:t.user,type:t.type==='in'?'Cash In':'Cash Out',in:t.type==='in'?t.amount:null,out:t.type==='out'?t.amount:null,bal:run,notes:nt(t),desc:t.desc||'',party:t.party?pName(t.party):'',edited:t.edited?'Yes':'',added:t.ts?new Date(t.ts):null,id:t.id});
+    r.getCell('date').numFmt='dd mmm yyyy';r.getCell('added').numFmt='dd mmm yyyy hh:mm';['in','out','bal'].forEach(function(k){r.getCell(k).numFmt=money});
+    r.getCell('in').font={color:{argb:'FF047857'}};r.getCell('out').font={color:{argb:'FFB91C1C'}}});
+  var ps=wb.addWorksheet('Parties');
+  head(ps,[['Name','name',24],['Type','kind',12],['Phone','phone',16]].concat(admin?[['Added by','owner',14]]:[]).concat([['You gave','gave',14],['You got','got',14],['Balance','bal',14],['Status','st',12],['Entries','n',9]]));
+  pl.forEach(function(p){var g=0,o=0,n=0;partyTx(p.id).forEach(function(t){n++;t.type==='out'?g+=t.amount:o+=t.amount});var b=g-o;
+    var r=ps.addRow({name:p.name,kind:PK[p.kind],phone:p.phone,owner:p.owner,gave:g,got:o,bal:Math.abs(b),st:b>0?'Will get':b<0?'Will give':'Settled',n:n});['gave','got','bal'].forEach(function(k){r.getCell(k).numFmt=money})});
+  if(admin){var us=wb.addWorksheet('Users');head(us,[['Username','u',16],['Role','r',10],['Entries','n',9],['Cash In','i',14],['Cash Out','o',14],['Balance','b',14],['Parties','p',9]]);
+    Object.keys(users).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i+=t.amount:o+=t.amount}});
+      var r=us.addRow({u:k,r:users[k].role==='admin'?'Admin':'User',n:n,i:i,o:o,b:i-o,p:parties.filter(function(p){return p.owner===k}).length});['i','o','b'].forEach(function(c){r.getCell(c).numFmt=money})})}
+  var buf=await wb.xlsx.writeBuffer(),nm=((biz.name||'Cashflow').replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()||'Cashflow')+' backup '+ymd(now)+(admin?'':' '+me)+'.xlsx';
+  saveFile(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nm);
+  try{localStorage.setItem('cf_backup_'+me,String(Date.now()))}catch(e){}
+}
+function bindBackup(admin){var b=document.getElementById('bk_go');if(!b)return;
+  b.onclick=async function(){b.disabled=true;b.textContent=L('Preparing…');err='';
+    try{await backupXls(admin);toast('✓ '+L('Backup downloaded'));render()}catch(x){b.disabled=false;b.textContent=L('⬇ Download backup (Excel)');seterr(x.message||'Backup failed')}}}
 
 // ---- Business settings (admin) ----
 // Name, address and logo are shared by everyone and printed on PDF / Excel exports.
@@ -1001,6 +1053,7 @@ function bind(admin){
   $('[data-lang]').forEach(function(b){b.onclick=function(){setLang(b.dataset.lang)}});
   if(tab==='books')bindPeople();
   if(tab==='deleted')bindDeleted();
+  if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
