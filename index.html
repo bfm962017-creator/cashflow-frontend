@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cashflow</title>
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="theme-color" content="#2196f3">
+<meta name="theme-color" content="#0f766e">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -203,6 +203,37 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .sel-sm{width:auto;margin:0;padding:6px 8px;font-size:13px}
 .ra{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--bd)}.ra:last-child{border:0}.ra .aic{width:32px;height:32px;font-size:15px}.ra>b{white-space:nowrap}
 .dempty{text-align:center;padding:28px 16px}.dempty b{font-size:16px}.dempty .mut{margin:6px 0 14px}
+
+/* ---- Theme: Khata Classic (teal ledger) ---- */
+:root{--bg:#eef3f3;--card:#fff;--tx:#1f2937;--mut:#6b7280;--bd:#dbe7e6;--pri:#0f766e;--in:#047857;--out:#b91c1c;--inb:#e7f6ee;--outb:#fdecec;--hb:#0f766e;--g:#047857;--r:#b91c1c;--thd:#dde9e8;--day:#f6f9f9;--chipb:#99c5c1}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1617;--card:#162021;--tx:#e6eeed;--mut:#93a3a1;--bd:#24312f;--pri:#2dd4bf;--in:#34d399;--out:#f87171;--inb:#10302a;--outb:#3a1a1a;--hb:#0b4f4a;--g:#059669;--r:#dc2626;--thd:#1b2a29;--day:#131d1e;--chipb:#2a5a55}}
+:root[data-theme="dark"]{--bg:#0f1617;--card:#162021;--tx:#e6eeed;--mut:#93a3a1;--bd:#24312f;--pri:#2dd4bf;--in:#34d399;--out:#f87171;--inb:#10302a;--outb:#3a1a1a;--hb:#0b4f4a;--g:#059669;--r:#dc2626;--thd:#1b2a29;--day:#131d1e;--chipb:#2a5a55}
+.card{border-radius:10px}
+.nav{gap:0;padding:0 4px}
+.nav button{border:0;border-radius:0;background:transparent;color:#fff;opacity:.72;padding:12px 4px 10px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:14px;border-bottom:3px solid transparent}
+.nav button.on{opacity:1;background:transparent;color:#fff;border-bottom-color:#fde68a}
+.bdg{background:#f59e0b;color:#111;border-color:var(--hb)}
+.sum3{display:grid;grid-template-columns:repeat(3,1fr);margin:12px 12px 10px;background:var(--card);border:1px solid var(--bd);border-radius:10px;overflow:hidden}
+.sum3 div{padding:10px 6px;text-align:center;border-right:1px solid var(--bd)}.sum3 div:last-child{border:0}
+.sum3 small{display:block;font-size:11px;color:var(--mut)}.sum3 b{font-size:16px;white-space:nowrap}
+.chips{background:transparent;padding:0 12px 10px;gap:6px}
+.chip{border-radius:6px;padding:6px 12px;background:var(--card);color:var(--pri);border:1px solid var(--chipb);font-size:13px}
+.chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+:root[data-theme="dark"] .chip.on,.dk .chip.on{color:#062b28}
+.ch{background:var(--thd);font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);padding:8px 12px}
+.dh{background:var(--day);color:var(--pri);font-size:13px;font-weight:700;padding:6px 12px;border-top:1px solid var(--bd)}
+.er{border-bottom:1px solid var(--bd)}.t{font-weight:600}.ei,.eo{font-weight:700}
+.bbtn button{border-radius:8px}.bbtn.big button{padding:14px;font-size:16px;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.hero{background:linear-gradient(135deg,#0f766e 0%,#115e59 100%);box-shadow:0 6px 18px rgba(15,118,110,.25);border-radius:12px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .hero{background:linear-gradient(135deg,#115e59 0%,#0b3b38 100%);box-shadow:none}}
+:root[data-theme="dark"] .hero{background:linear-gradient(135deg,#115e59 0%,#0b3b38 100%);box-shadow:none}
+.hp .aic.ci{color:#047857}.hp .aic.co{color:#b91c1c}
+.sgc{border-radius:8px}.sgc button{border-radius:6px}
+.av.sm{color:var(--pri)}.drw .mi.on{color:var(--pri)}
+.tile,.pt div,.pbal,.cc{border-radius:10px}
+.lh{background:var(--thd);text-transform:uppercase;letter-spacing:.04em}
+.lsv{border-radius:8px}#toast{background:#047857}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .sgc button.on,:root:not([data-theme="light"]) .chip.on,:root:not([data-theme="light"]) button.p{color:#062b28}}
 </style>
 </head>
 <body>
@@ -294,7 +325,7 @@ var HI={
 'Entries':'एंट्री','Dashboard':'डैशबोर्ड','People':'लोग','Parties':'पार्टियां','Users':'यूज़र','My parties':'मेरी पार्टियां','All parties':'सभी पार्टियां',
 'Manage users':'यूज़र मैनेज करें','Export PDF / Excel':'PDF / Excel एक्सपोर्ट','Business settings':'बिज़नेस सेटिंग्स','Language':'भाषा','Language / भाषा':'भाषा / Language',
 'All':'सभी','Daily':'रोज़ाना','Weekly':'साप्ताहिक','Monthly':'मासिक','Yearly':'सालाना','All users':'सभी यूज़र','Search notes, amount, user':'नोट, रकम, यूज़र खोजें',
-'Date':'तारीख','Cash In':'नकद आया','Cash Out':'नकद गया','Cash in':'नकद आया','Cash out':'नकद गया','Total Cash In':'कुल नकद आया','Total Cash Out':'कुल नकद गया','Balance':'बैलेंस',
+'Date':'तारीख','Cash In':'नकद आया','Cash Out':'नकद गया','Cash in':'नकद आया','Cash out':'नकद गया','Total Cash In':'कुल नकद आया','Total In':'कुल आया','Total Out':'कुल गया','Details':'विवरण','+ Cash In':'+ नकद आया','− Cash Out':'− नकद गया','Total Cash Out':'कुल नकद गया','Balance':'बैलेंस',
 'No entries found.':'कोई एंट्री नहीं मिली।','(no notes)':'(कोई नोट नहीं)','Edit entry':'एंट्री बदलें','Delete':'हटाएं','Save and exit':'सेव करें और बाहर जाएं','Save and continue':'सेव करें और जारी रखें','Update':'अपडेट करें',
 'Cash In amount (₹)':'आई रकम (₹)','Cash Out amount (₹)':'गई रकम (₹)','Notes':'नोट','Description / Category':'विवरण / कैटेगरी','Party (optional)':'पार्टी (वैकल्पिक)','No party':'कोई पार्टी नहीं',
 'Entry for user:':'इस यूज़र की एंट्री:','Enter a valid amount':'सही रकम लिखें','Pick a date':'तारीख चुनें','Delete this entry?':'यह एंट्री हटाएं?',
@@ -324,7 +355,7 @@ var HI={
 'For':'यूज़र:','Tip: add customers and suppliers under':'सुझाव: ग्राहक और सप्लायर यहां जोड़ें:','to track what each one owes.':'ताकि पता रहे किससे कितना लेना है।','People → My parties':'लोग → मेरी पार्टियां','Tip: add your business name and logo in':'सुझाव: अपना बिज़नेस नाम और लोगो यहां जोड़ें:','Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
-[/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
+[/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^Bal (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
 [/^(\d+) days? with entries$/,'$1 दिन जिनमें एंट्री है'],[/^Show all (\d+)$/,'सभी $1 दिखाएं'],[/^Latest (\d+) entries added$/,'हाल की $1 एंट्री'],
 [/^(\d+) logins · all-time balance$/,'$1 लॉगिन · शुरू से बैलेंस'],[/^(\d+) users · tap one to open$/,'$1 यूज़र · खोलने के लिए टैप करें'],
 [/^from (\d+) part(?:y|ies)$/,'$1 पार्टी से'],[/^to (\d+) part(?:y|ies)$/,'$1 पार्टी को'],[/^👤 (\d+) part(?:y|ies) ›$/,'👤 $1 पार्टी ›'],
@@ -591,19 +622,20 @@ function txHtml(admin){
     if(qq&&(nt(t)+' '+(t.desc||'')+' '+t.user+' '+t.amount).toLowerCase().indexOf(qq)<0)return false;return true}).reverse();
   var ti=0,to=0;list.forEach(function(t){t.type==='in'?ti+=t.amount:to+=t.amount});
   var P=[['all','All'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['yearly','Yearly']];
-  var h='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
+  var h='<div class="sum3"><div><small>Total In</small><b class="in">'+fmt(ti)+'</b></div><div><small>Total Out</small><b class="out">'+fmt(to)+'</b></div><div><small>Balance</small><b'+(ti-to<0?' class="out"':'')+'>'+sgnb(ti-to)+'</b></div></div>';
+  h+='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
   if(showQ)h+='<div class="pad" style="padding-bottom:0"><input id="q" placeholder="Search notes, amount, user" value="'+esc(q)+'"></div>';
   if(admin)h+='<div class="pad" style="padding-bottom:0"><select id="e_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></div>';
-  h+='<div class="ch"><span>Date</span><span class="in">Cash In</span><span class="out">Cash Out</span></div>';
+  h+='<div class="ch"><span>Details</span><span class="in">Cash In</span><span class="out">Cash Out</span></div>';
   if(!list.length)h+='<p class="mut pad">No entries found.</p>';
   var last='';
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
     h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
-    (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Balance '+fn(B[t.id])+'</div></div>';
+    (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
-  h+='<div class="fixb"><div class="bbtn"><button class="gi" data-new="in">Cash In</button><button class="go" data-new="out">Cash Out</button></div><div class="tot"><div><small class="in">Total Cash In</small><b class="in">'+fn(ti)+'</b></div><div><small class="out">Total Cash Out</small><b class="out">'+fn(to)+'</b></div><div><small>Balance</small><b>'+fn(ti-to)+'</b></div></div></div>';
+  h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
   return h;
 }
 
