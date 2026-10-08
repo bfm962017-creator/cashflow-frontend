@@ -368,6 +368,7 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'The admin does not add entries':'एडमिन एंट्री नहीं जोड़ता','The admin does not add parties':'एडमिन पार्टी नहीं जोड़ता',
 'Ask to delete':'हटाने को कहें','⏳ Waiting for OK':'⏳ मंज़ूरी बाकी','Withdraw request':'अनुरोध वापस लें','✕ Refuse':'✕ मना करें','✓ Agree':'✓ मंज़ूर','If you agree, both cashbooks change.':'मंज़ूर करने पर दोनों कैशबुक बदलेंगी।',
 'Requests for your OK':'आपकी मंज़ूरी के लिए','⏳ Change asked':'⏳ बदलाव मांगा','⏳ Delete asked':'⏳ हटाना मांगा','Refuse this request?':'यह अनुरोध मना करें?',
 '✓ Agreed · both cashbooks updated':'✓ मंज़ूर · दोनों कैशबुक अपडेट','Refused · nothing changed':'मना किया · कुछ नहीं बदला','Request withdrawn':'अनुरोध वापस लिया','Photo saved':'फ़ोटो सेव हुई',
@@ -789,7 +790,8 @@ function txHtml(admin){
     h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.transfer?'<span class="ttg">Transfer</span>':'')+(isLocked(t.date)?' <span class="lki" title="Locked">🔒</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
-  h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
+  // The admin supervises: reviews, corrects and deletes entries, but does not add any.
+  if(!admin)h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
   return h;
 }
 
@@ -1119,8 +1121,8 @@ function peopleHtml(admin){
   partyId=null;
   if(admin&&puser)return '<div class="pbar"><button class="sm" data-pub="1">← Users</button><span class="un"><b>'+esc(puser)+'\'s parties</b><small class="mut">View only</small></span></div>'+
     partiesHtml(parties.filter(function(p){return p.owner===puser}),'user');
-  var seg=admin?pseg:'parties',h='';
-  if(admin)h+='<div class="sgc" style="margin-bottom:12px">'+[['users','Users'],['parties','My parties'],['all','All parties']].map(function(s){return '<button data-ps="'+s[0]+'" class="'+(seg===s[0]?'on':'')+'">'+s[1]+'</button>'}).join('')+'</div>';
+  var seg=admin?(pseg==='all'?'all':'users'):'parties',h='';
+  if(admin)h+='<div class="sgc" style="margin-bottom:12px">'+[['users','Users'],['all','All parties']].map(function(s){return '<button data-ps="'+s[0]+'" class="'+(seg===s[0]?'on':'')+'">'+s[1]+'</button>'}).join('')+'</div>';
   return h+(seg==='users'?booksHtml():seg==='all'?partiesHtml(parties,'all'):partiesHtml(myParties(),'mine'));
 }
 // mode: 'mine' (your own, editable), 'user' (one user's, admin view), 'all' (everyone's, admin view)
