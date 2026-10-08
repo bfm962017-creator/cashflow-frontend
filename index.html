@@ -210,6 +210,12 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .note2{font-size:12px;color:var(--mut);text-align:center;margin-top:10px}
 .warn{background:#fffbeb;border-color:#fcd34d}.warn b{color:#92400e}.warn p{margin:6px 0 0;font-size:14px;color:#78350f}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .warn{background:#2a2108;border-color:#6b5310}:root:not([data-theme="light"]) .warn p,:root:not([data-theme="light"]) .warn b{color:#fcd34d}}
+.picadd{display:flex;align-items:center;gap:8px;justify-content:center;border:1.5px dashed var(--chipb,var(--bd));border-radius:10px;padding:14px;margin-bottom:10px;color:var(--pri);font-weight:600;cursor:pointer;background:var(--bg)}
+.pic{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}.pic img{width:96px;height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--bd);cursor:zoom-in;background:#fff}
+.picb{display:flex;flex-direction:column;gap:8px;align-items:flex-start}.picb small{font-size:12px}.picb .btn,.picb button{padding:7px 12px;font-size:14px}
+.pview{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;padding:16px}
+.pview img{max-width:100%;max-height:100%;object-fit:contain;border-radius:6px}.pview button{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));right:12px;background:rgba(255,255,255,.15);color:#fff;border:0;border-radius:50%;width:40px;height:40px;font-size:18px}
+.pclip{font-size:13px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -256,7 +262,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -297,7 +303,7 @@ async function api(m,u,b){
 }
 function signout(){menu=false;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
-  parties=d.parties||[];biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
+  parties=d.parties||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
 // Start-up: the free server sleeps when idle and takes up to a minute to wake, so keep retrying
@@ -372,7 +378,8 @@ var HI={
 'Type':'प्रकार','Amount':'रकम','Time':'समय','Description':'विवरण','Party':'पार्टी','(removed party)':'(हटाई गई पार्टी)','No changes recorded yet. Changes made from now on will show here.':'अभी कोई बदलाव दर्ज नहीं। अब से होने वाले बदलाव यहां दिखेंगे।',
 'Changes made before history was switched on are not shown.':'इतिहास शुरू होने से पहले के बदलाव नहीं दिखते।','History is saved automatically and can’t be edited.':'इतिहास अपने आप सेव होता है और बदला नहीं जा सकता।',
 'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
-'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','📄 Statement':'📄 स्टेटमेंट','📄 Statement ready':'📄 स्टेटमेंट तैयार','📤 Share PDF (WhatsApp…)':'📤 PDF भेजें (WhatsApp…)','💬 Download & open WhatsApp':'💬 डाउनलोड करें और WhatsApp खोलें','⬇ Download':'⬇ डाउनलोड','Close':'बंद करें','This phone cannot attach files directly. The PDF downloads first, then attach it in WhatsApp.':'यह फ़ोन सीधे फ़ाइल नहीं भेज सकता। पहले PDF डाउनलोड होगी, फिर WhatsApp में अटैच करें।','Could not make the PDF':'PDF नहीं बन सकी','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
+'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','📄 Statement':'📄 स्टेटमेंट','📄 Statement ready':'📄 स्टेटमेंट तैयार','📤 Share PDF (WhatsApp…)':'📤 PDF भेजें (WhatsApp…)','💬 Download & open WhatsApp':'💬 डाउनलोड करें और WhatsApp खोलें','⬇ Download':'⬇ डाउनलोड','Close':'बंद करें','This phone cannot attach files directly. The PDF downloads first, then attach it in WhatsApp.':'यह फ़ोन सीधे फ़ाइल नहीं भेज सकता। पहले PDF डाउनलोड होगी, फिर WhatsApp में अटैच करें।','Could not make the PDF':'PDF नहीं बन सकी','Bill photo':'बिल की फ़ोटो','📷 Add bill photo':'📷 बिल की फ़ोटो जोड़ें','(optional)':'(वैकल्पिक)','🔄 Change':'🔄 बदलें','✕ Remove':'✕ हटाएं','Loading photo…':'फ़ोटो लोड हो रही है…','Photo':'फ़ोटो','New photo':'नई फ़ोटो',
+'Entry saved, but the photo did not upload. Open the entry to try again.':'एंट्री सेव हो गई, पर फ़ोटो अपलोड नहीं हुई। एंट्री खोलकर फिर कोशिश करें।','Could not read that photo':'फ़ोटो पढ़ी नहीं जा सकी','That file is not a photo':'यह फ़ाइल फ़ोटो नहीं है','Has bill photo':'बिल की फ़ोटो है','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
 'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Download backup':'बैकअप डाउनलोड करें','💾 Backup':'💾 बैकअप','Save a copy of your data to your phone':'अपने डेटा की कॉपी फ़ोन में सेव करें','Last backup':'आखिरी बैकअप','Never':'कभी नहीं','Last backup on this phone:':'इस फ़ोन पर आखिरी बैकअप:',
 'One Excel file with every user’s entries, all parties and the user list.':'एक Excel फ़ाइल जिसमें सभी यूज़र की एंट्री, सभी पार्टियां और यूज़र लिस्ट है।','One Excel file with your entries and your parties.':'एक Excel फ़ाइल जिसमें आपकी एंट्री और पार्टियां हैं।',
 'Keep it on your phone, email it to yourself or upload it to Google Drive.':'इसे फ़ोन में रखें, खुद को ईमेल करें या Google Drive पर अपलोड करें।','⬇ Download backup (Excel)':'⬇ बैकअप डाउनलोड करें (Excel)','Backup downloaded':'बैकअप डाउनलोड हो गया','⚠ Important':'⚠ ज़रूरी',
@@ -388,7 +395,7 @@ var HIP=[
 [/^(.+) owes you$/,'$1 से आपको लेना है'],[/^You owe (.+)$/,'आपको $1 को देना है'],[/^All settled with (.+)$/,'$1 के साथ हिसाब बराबर'],
 [/^(.+) owes ([a-z0-9_.-]+)$/,'$1 से $2 को लेना है'],[/^([a-z0-9_.-]+) owes (.+)$/,'$1 को $2 को देना है'],[/^(.+) gave$/,'$1 ने दिया'],[/^(.+) got$/,'$1 को मिला'],
 [/^last (.+)$/,'आखिरी $1'],[/^(.*)no entries yet$/,'$1अभी कोई एंट्री नहीं'],[/^Delete party "(.+)"\?$/,'पार्टी "$1" हटाएं?'],[/^Delete user "(.+)"\? They can no longer sign in\. Their entries are kept\.$/,'यूज़र "$1" हटाएं? वह साइन इन नहीं कर पाएगा। उसकी एंट्री बनी रहेंगी।'],[/^(\d+)m ago$/,'$1 मिनट पहले'],[/^(\d+)h ago$/,'$1 घंटे पहले'],
-[/^· (\d+) changes?$/,'· $1 बदलाव'],[/^Deleted by (.+) · (.+)$/,function(m,a,b){return a+' ने हटाया · '+trDate(HI[b.split(' · ')[0]]?b.replace(/^(Today|Yesterday)/,function(x){return HI[x]}):b)}],[/^(.+)'s entry · (.+)$/,function(m,a,b){return a+' की एंट्री · '+trDate(b)}],[/^(Today|Yesterday) · (.+)$/,function(m,a,b){return HI[a]+' · '+trDate(b)}],[/^Total balance · (.+)$/,'कुल बैलेंस · $1'],[/^(.+) · (Admin|User)$/,function(m,a,b){return a+' · '+HI[b]}],
+[/^· (\d+) changes?$/,'· $1 बदलाव'],[/^Deleted by (.+) · (.+)$/,function(m,a,b){return a+' ने हटाया · '+trDate(HI[b.split(' · ')[0]]?b.replace(/^(Today|Yesterday)/,function(x){return HI[x]}):b)}],[/^(.+)'s entry · (.+)$/,function(m,a,b){return a+' की एंट्री · '+trDate(b)}],[/^(Today|Yesterday) · (.+)$/,function(m,a,b){return HI[a]+' · '+trDate(b)}],[/^(\d+) KB · tap photo to zoom$/,'$1 KB · बड़ा देखने के लिए टैप करें'],[/^Bill photos use (.+) of storage \(photos stay on the server; the Excel file lists which entries have one\)\.$/,'बिल की फ़ोटो $1 जगह ले रही हैं (फ़ोटो सर्वर पर रहती हैं; Excel में लिखा होता है किस एंट्री में फ़ोटो है)।'],[/^Total balance · (.+)$/,'कुल बैलेंस · $1'],[/^(.+) · (Admin|User)$/,function(m,a,b){return a+' · '+HI[b]}],
 [/^✓ (Saved|Updated) · Cash (In|Out) (.+)$/,function(m,a,b,c){return '✓ '+(a==='Saved'?'सेव हुआ':'अपडेट हुआ')+' · '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
 [/^Last saved: Cash (In|Out) (.+)$/,function(m,b,c){return 'आखिरी सेव: '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
 [/^(.+) added · (.+)$/,'$1 ने जोड़ा · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 से लेना है $2'],
@@ -515,7 +522,7 @@ function viewForm(){
   h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card"><div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in">Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out">Cash Out</button></div>'+
   '<div class="row2"><div class="dt"><button data-dd="-1">‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"><button data-dd="1">›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"></div></div>'+
   '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'">'+
-  partyPicker(f)+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+
+  partyPicker(f)+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+photoBox(f)+
   (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div>'+(f.id?'<div class="card hist" id="f_hist">'+histHtml(f.hist)+'</div>':'')+'</div>'+
   '<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>';
   app.innerHTML=h;
@@ -529,6 +536,8 @@ function viewForm(){
   G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
   if(!f.id&&!f.amount)G('f_amt').focus();
   if(f.id&&f.hist===undefined)loadHist(f);
+  if(f.id&&f.hadPic&&f.pic===undefined&&!f.picLoading){f.picLoading=true;loadPic(f)}
+  bindPhoto();
 }
 // Small confirmation pill at the top of the screen; lives outside #app so re-renders don't remove it.
 function toast(html){
@@ -536,14 +545,54 @@ function toast(html){
   t.innerHTML=html;tr(t);t.classList.remove('on');void t.offsetWidth;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(function(){t.classList.remove('on')},2600);
 }
 function savedText(d,edit){return (edit?'Updated':'Saved')+' · '+(d.type==='in'?'Cash In':'Cash Out')+' '+fmt(d.amount)+(d.party&&pName(d.party)?' · 👤 '+esc(pName(d.party)):d.notes?' · '+esc(d.notes.length>18?d.notes.slice(0,18)+'…':d.notes):'')}
+// ---- Bill photo on an entry ----
+// The photo is shrunk on the phone (max 1280px, JPEG) to roughly 50-150 KB before upload, and
+// stored on the server separately from the entry. form.pic: undefined = not loaded yet,
+// null = no photo, string = the photo; form.picDirty = changed in this form.
+function shrinkPhoto(file){return new Promise(function(ok,no){
+  var r=new FileReader();r.onerror=function(){no(new Error('Could not read that photo'))};
+  r.onload=function(){var im=new Image();im.onerror=function(){no(new Error('That file is not a photo'))};im.onload=function(){
+    var make=function(max,q){var k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);return c.toDataURL('image/jpeg',q)};
+    var d=make(1280,.6);if(d.length>380000)d=make(1000,.5);if(d.length>380000)d=make(800,.45);ok(d)};im.src=r.result};r.readAsDataURL(file)})}
+function kb(dataUrl){return Math.round((dataUrl.length-23)*3/4/1024)}
+function photoBox(f){
+  var inp='<input type="file" accept="image/*" id="pic_in" hidden>';
+  if(f.pic)return '<label class="fl">Bill photo</label><div class="pic"><img src="'+f.pic+'" id="pic_view" alt="Bill photo"><div class="picb"><small class="mut">'+kb(f.pic)+' KB · tap photo to zoom</small><label class="btn">🔄 Change'+inp+'</label><button id="pic_rm">✕ Remove</button></div></div>';
+  if(f.hadPic&&f.pic===undefined)return '<label class="fl">Bill photo</label><p class="mut" style="margin:0 0 10px">Loading photo…</p>';
+  return '<label class="picadd">📷 Add bill photo <small class="mut">(optional)</small>'+inp+'</label>';
+}
+async function loadPic(f){
+  f.pic=undefined;try{var r=await api('GET','/tx/'+encodeURIComponent(f.id)+'/photo');f.pic=r.photo}catch(e){f.pic=null;f.hadPic=false}
+  if(form===f)render();
+}
+function viewPhoto(src){
+  var v=document.createElement('div');v.className='pview';v.innerHTML='<img src="'+src+'" alt="Bill photo"><button aria-label="Close">✕</button>';
+  v.onclick=function(){v.remove()};document.body.appendChild(v);
+}
+function bindPhoto(){
+  var G=function(i){return document.getElementById(i)};
+  if(G('pic_in'))G('pic_in').onchange=async function(e){var fl=e.target.files[0];if(!fl)return;try{form.pic=await shrinkPhoto(fl);form.picDirty=true;err='';render()}catch(x){seterr(x.message)}};
+  if(G('pic_rm'))G('pic_rm').onclick=function(){form.pic=null;form.picDirty=true;render()};
+  if(G('pic_view'))G('pic_view').onclick=function(){viewPhoto(form.pic)};
+}
+// Called after the entry itself is saved; a failed upload never loses the entry.
+async function savePhoto(f,id){
+  if(!f.picDirty)return true;
+  try{if(f.pic)await api('PUT','/tx/'+encodeURIComponent(id)+'/photo',{photo:f.pic});else if(f.hadPic)await api('DELETE','/tx/'+encodeURIComponent(id)+'/photo');return true}
+  catch(e){return false}
+}
+
 async function save(exit){
   var f=form,amt=parseFloat(f.amount);
   if(!(amt>0))return seterr('Enter a valid amount');if(!f.date)return seterr('Pick a date');
   var data={type:f.type,amount:Math.round(amt*100)/100,date:f.date,time:f.time||'',notes:f.notes.trim(),desc:f.desc.trim(),user:f.user||undefined,party:f.party||null};
-  try{if(f.id)await api('PUT','/tx/'+f.id,data);else await api('POST','/tx',data);await load()}catch(e){return seterr(e.message)}
+  var sv=document.getElementById('sx'),sc=document.getElementById('sc');if(sv)sv.disabled=true;if(sc)sc.disabled=true;
+  var picOk=true;
+  try{var row=f.id?await api('PUT','/tx/'+f.id,data):await api('POST','/tx',data);picOk=await savePhoto(f,f.id||row.id);await load()}catch(e){if(sv)sv.disabled=false;if(sc)sc.disabled=false;return seterr(e.message)}
   err='';
-  toast('✓ '+savedText(data,!!f.id));
-  if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.date=d;if(uu)form.user=uu;if(pp)form.party=pp;form.last={d:data,at:Date.now()}}
+  toast(picOk?'✓ '+savedText(data,!!f.id)+(f.pic&&f.picDirty?' · 📷':''):'⚠ '+L('Entry saved, but the photo did not upload. Open the entry to try again.'));
+  if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.pic=null;form.date=d;if(uu)form.user=uu;if(pp)form.party=pp;form.last={d:data,at:Date.now()}}
   render();
 }
 
@@ -659,7 +708,7 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
   h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
@@ -669,11 +718,11 @@ function txHtml(admin){
 // ---- Entry history & deleted entries ----
 // The server records every add / edit / delete / restore. The entry form shows that timeline;
 // the admin can list deletions from the last 30 days and restore them.
-var HF={kind:'Type',amount:'Amount',tx_date:'Date',tx_time:'Time',notes:'Notes',descr:'Description',party_id:'Party'},delList;
+var HF={kind:'Type',amount:'Amount',tx_date:'Date',tx_time:'Time',notes:'Notes',descr:'Description',party_id:'Party',photo:'Bill photo'},delList;
 function histVal(f,v){
   if(v==null||v==='')return '—';
   if(f==='kind')return v==='in'?'Cash In':'Cash Out';if(f==='amount')return fmt(v);if(f==='tx_date')return dshort(v)+' '+String(v).slice(0,4);
-  if(f==='tx_time')return t12(v);if(f==='party_id')return esc(pName(v)||'(removed party)');return esc(v);
+  if(f==='tx_time')return t12(v);if(f==='photo')return v==='replaced'?'New photo':'Photo';if(f==='party_id')return esc(pName(v)||'(removed party)');return esc(v);
 }
 function when(ts){var d=new Date(ts),k=ymd(d),td=today();return (k===td?'Today':k===addDays(td,-1)?'Yesterday':dlabel(k))+' · '+t12(hhmm(d))}
 function histHtml(list){
@@ -719,9 +768,10 @@ function bindDeleted(){
 // Admin: all users' entries, all parties and the user list. Others: their own entries and parties.
 function lastBackup(){try{return +localStorage.getItem('cf_backup_'+me)||0}catch(e){return 0}}
 function backupHtml(admin){
-  var lb=lastBackup(),mine=admin?txs:txs.filter(function(t){return t.user===me}),pl=admin?parties:myParties();
+  var lb=lastBackup(),pm=photoBytes!=null?(photoBytes/1048576).toFixed(1):null,mine=admin?txs:txs.filter(function(t){return t.user===me}),pl=admin?parties:myParties();
   var h='<div class="uhd"><div><h2 style="margin:0">💾 Backup</h2><small class="mut">Save a copy of your data to your phone</small></div></div><div class="card">';
   h+='<div class="exs" style="grid-template-columns:repeat(3,1fr)"><div><small>Entries</small><b>'+mine.length+'</b></div><div><small>Parties</small><b>'+pl.length+'</b></div><div><small>'+(admin?'Users':'Last backup')+'</small><b>'+(admin?Object.keys(users).length:(lb?dshort(ymd(new Date(lb))):'Never'))+'</b></div></div>';
+  if(admin&&pm!=null)h+='<p class="mut" style="margin:0 0 6px">Bill photos use <b>'+pm+' MB</b> of storage (photos stay on the server; the Excel file lists which entries have one).</p>';
   if(admin)h+='<p class="mut" style="margin:0 0 12px">Last backup on this phone: <b>'+(lb?when(lb):'Never')+'</b></p>';
   h+='<p class="mut" style="margin:0 0 12px">'+(admin?'One Excel file with every user’s entries, all parties and the user list.':'One Excel file with your entries and your parties.')+' Keep it on your phone, email it to yourself or upload it to Google Drive.</p>';
   h+='<div class="err" id="e">'+esc(err)+'</div><button class="p" id="bk_go" style="width:100%">⬇ Download backup (Excel)</button></div>';
@@ -740,9 +790,9 @@ async function backupXls(admin){
    .forEach(function(r,i){var row=sm.getRow(i+1);row.values=r;row.getCell(1).font={bold:true};if(typeof r[1]==='number'&&i>=6&&i<=8)row.getCell(2).numFmt=money});
   sm.getRow(1).getCell(2).font={bold:true,size:14};
   var es=wb.addWorksheet('Entries');
-  head(es,[['Date','date',12],['Time','time',10],['User','user',12],['Type','type',10],['Cash In','in',13],['Cash Out','out',13],['Balance','bal',14],['Notes','notes',28],['Description','desc',22],['Party','party',20],['Edited','edited',8],['Added at','added',20],['Entry ID','id',38]]);
+  head(es,[['Date','date',12],['Time','time',10],['User','user',12],['Type','type',10],['Cash In','in',13],['Cash Out','out',13],['Balance','bal',14],['Notes','notes',28],['Description','desc',22],['Party','party',20],['Edited','edited',8],['Photo','photo',8],['Added at','added',20],['Entry ID','id',38]]);
   var run=0;list.forEach(function(t){run+=t.type==='in'?t.amount:-t.amount;
-    var r=es.addRow({date:new Date(t.date+'T00:00:00Z'),time:tm(t)?t12(tm(t)):'',user:t.user,type:t.type==='in'?'Cash In':'Cash Out',in:t.type==='in'?t.amount:null,out:t.type==='out'?t.amount:null,bal:run,notes:nt(t),desc:t.desc||'',party:t.party?pName(t.party):'',edited:t.edited?'Yes':'',added:t.ts?new Date(t.ts):null,id:t.id});
+    var r=es.addRow({date:new Date(t.date+'T00:00:00Z'),time:tm(t)?t12(tm(t)):'',user:t.user,type:t.type==='in'?'Cash In':'Cash Out',in:t.type==='in'?t.amount:null,out:t.type==='out'?t.amount:null,bal:run,notes:nt(t),desc:t.desc||'',party:t.party?pName(t.party):'',edited:t.edited?'Yes':'',photo:t.photo?'Yes':'',added:t.ts?new Date(t.ts):null,id:t.id});
     r.getCell('date').numFmt='dd mmm yyyy';r.getCell('added').numFmt='dd mmm yyyy hh:mm';['in','out','bal'].forEach(function(k){r.getCell(k).numFmt=money});
     r.getCell('in').font={color:{argb:'FF047857'}};r.getCell('out').font={color:{argb:'FFB91C1C'}}});
   var ps=wb.addWorksheet('Parties');
@@ -1112,7 +1162,7 @@ function bind(admin){
   bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
-  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null};err='';render()}}});
+  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null,hadPic:!!t.photo};err='';render()}}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
   $('[data-rp]').forEach(function(b){b.onclick=function(){sheet={mode:'pw',user:b.dataset.rp};err='';render();G('nu_p').focus()}});
   $('[data-sx]').forEach(function(b){b.onclick=function(){sheet=null;err='';render()}});
