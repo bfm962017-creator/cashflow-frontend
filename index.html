@@ -177,6 +177,8 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .pt small{display:block;color:var(--mut);font-size:12px}.pt b{font-size:20px}
 .pr .r{text-align:right;flex:none}.pr .r small{display:block;font-size:11px;color:var(--mut)}.pr .r b{font-size:15px}
 .tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--mut);margin-left:6px;font-weight:500;vertical-align:1px}
+/* Lock old entries */
+.chips.lkc{padding:0;display:flex;flex-wrap:wrap;margin:0 0 12px}.lkp{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:12px}.lkp p{margin:6px 0 0;font-size:13px}.lki{font-size:12px}.lkn{color:var(--out);font-weight:600}
 /* Transfers */
 .mbdg{margin-left:auto;background:#f59e0b;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:1px 7px}
 .ttg{font-size:11px;background:rgba(15,118,110,.12);color:var(--pri);border-radius:5px;padding:1px 6px;margin-left:6px;font-weight:600;vertical-align:1px}
@@ -281,7 +283,7 @@ a.wa{background:#16a34a;color:#fff;border-radius:16px;padding:5px 12px;font-size
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),lockSel=null,transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -290,6 +292,7 @@ var MENU=[
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
+  {id:'lock',icon:'🔒',label:'Lock old entries',admin:true},
   {id:'deleted',icon:'🗑',label:'Deleted entries'},
   {id:'backup',icon:'💾',label:'Download backup'},
   {id:'lang',icon:'🌐',label:'Language / भाषा'}
@@ -360,6 +363,9 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'Lock old entries':'पुरानी एंट्री लॉक','🔒 Lock old entries':'🔒 पुरानी एंट्री लॉक','Stop users from changing old records':'यूज़र को पुराना रिकॉर्ड बदलने से रोकें','Users can change entries from':'यूज़र इतने दिन की एंट्री बदल सकते हैं',
+'Off':'बंद','Today only':'सिर्फ़ आज','Lock is off.':'लॉक बंद है।','Users can add, edit and delete entries of any date.':'यूज़र किसी भी तारीख की एंट्री जोड़, बदल और हटा सकते हैं।',
+'You (admin) can always change any entry.':'आप (एडमिन) हमेशा कोई भी एंट्री बदल सकते हैं।','🔓 Lock turned off':'🔓 लॉक बंद किया',
 'Transfer':'ट्रांसफ़र','⇄ Transfer':'⇄ ट्रांसफ़र','Send money to another user · they must accept':'दूसरे यूज़र को पैसे भेजें · उन्हें स्वीकार करना होगा','Waiting for you':'आपके लिए बाकी','sent you':'ने आपको भेजे',
 '⏳ Pending':'⏳ बाकी','✓ Accepted':'✓ स्वीकार','✕ Rejected':'✕ अस्वीकार','Cancelled':'रद्द','Deleted':'हटाया','✕ Reject':'✕ अस्वीकार','✓ Accept':'✓ स्वीकार करें',
 'Accept only if you actually got the money. It will be added to your cashbook as Cash In.':'तभी स्वीकार करें जब पैसा सच में मिल गया हो। यह आपकी कैशबुक में नकद आया के रूप में जुड़ेगा।',
@@ -417,6 +423,9 @@ var HI={
 'Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
+[/^Locked: entries before (.+) can only be changed by the admin$/,'लॉक: $1 से पहले की एंट्री सिर्फ़ एडमिन बदल सकता है'],[/^🔒 Locked: entries before (.+) can only be changed by the admin$/,'🔒 लॉक: $1 से पहले की एंट्री सिर्फ़ एडमिन बदल सकता है'],
+[/^🔒 Entries before (.+) are locked$/,'🔒 $1 से पहले की एंट्री लॉक हैं'],[/^Entries before (.+) are locked$/,'$1 से पहले की एंट्री लॉक हैं'],[/^(\d+) days?$/,'$1 दिन'],
+[/^Users can only add, edit or delete entries dated (.+) to today\. Older entries, their bill photos and backdated new entries are blocked\. The lock moves forward every day\.$/,'यूज़र सिर्फ़ $1 से आज तक की एंट्री जोड़, बदल या हटा सकते हैं। पुरानी एंट्री, उनकी बिल फ़ोटो और पुरानी तारीख की नई एंट्री बंद रहेंगी। लॉक हर दिन आगे बढ़ता है।'],
 [/^Send (₹[\d,.]+) to (.+)\?$/,'$2 को $1 भेजें?'],[/^Sent to (.+) · waiting for accept$/,'$1 को भेजा · स्वीकार करना बाकी'],[/^✓ Accepted · (₹[\d,.]+) from (.+) added as Cash In$/,'✓ स्वीकार किया · $2 से $1 नकद आया में जुड़ा'],
 [/^Reject (₹[\d,.]+) from (.+)\?$/,'$2 से $1 अस्वीकार करें?'],[/^Rejected · (₹[\d,.]+) from (.+)$/,'अस्वीकार किया · $2 से $1'],[/^Cancel the transfer of (₹[\d,.]+) to (.+)\?$/,'$2 को $1 का ट्रांसफ़र रद्द करें?'],[/^Cancelled · (₹[\d,.]+) to (.+)$/,'रद्द किया · $2 को $1'],
 [/^⇄ To (.+)$/,'⇄ $1 को'],[/^⇄ From (.+)$/,'⇄ $1 से'],[/^To (.+)$/,'$1 को'],[/^From (.+)$/,'$1 से'],[/^This transfer was already (\w+)$/,function(m,a){return 'यह ट्रांसफ़र पहले ही '+({accepted:'स्वीकार',rejected:'अस्वीकार',cancelled:'रद्द',deleted:'हटा दिया'}[a]||a)+' हो चुका है'}],
@@ -495,7 +504,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -528,6 +537,7 @@ function actText(a){
     case 'user_password':return a.owner===me?who+' reset your password':who+' reset <b>'+esc(a.owner)+'</b>\'s password';
     case 'user_delete':return who+' deleted user <b>'+esc(a.owner)+'</b>';
     case 'settings':return who+' updated business settings';
+    case 'lock':return a.amount<0?who+' turned off the entry lock':who+' locked entries older than '+(a.amount===0?'today':a.amount+' day'+(a.amount===1?'':'s'))+' for users';
     case 'tr_send':return who+' sent '+(a.owner===me?'you':'<b>'+esc(a.owner)+'</b>')+amt+' · waiting for accept';
     case 'tr_accept':return who+' accepted '+(a.owner===me?'your transfer of'+amt:'a transfer of'+amt+' from <b>'+esc(a.owner)+'</b>');
     case 'tr_reject':return who+' rejected '+(a.owner===me?'your transfer of'+amt:'a transfer of'+amt+' from <b>'+esc(a.owner)+'</b>');
@@ -537,7 +547,7 @@ function actText(a){
 }
 function actIcon(a){
   if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
-  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄']}[a.action]||['','•'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄'],lock:['','🔒']}[a.action]||['','•'];
 }
 function notifHtml(){
   var an=menuAnim?' an':'';menuAnim=false;
@@ -557,15 +567,16 @@ function openMenu(kind){menu=typeof kind==='string'?kind:'menu';menuAnim=true;hi
 function closeMenu(){if(menu){menu=false;history.back();render()}}
 
 function viewForm(){
-  var f=form,isIn=f.type==='in',lk=f.transfer?' disabled':'';
-  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh" id="fb">←</button><b>'+(f.id?'Edit entry':(isIn?'Cash In':'Cash Out'))+'</b></div>'+(f.id?'<button class="gh" id="fdel">Delete</button>':'')+'</div></div>';
-  h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card">'+(f.transfer?'<p class="note">⇄ This is a transfer. Only the amount and description can be changed, and the other user\'s cashbook changes with it.</p>':'')+'<div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in"'+lk+'>Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out"'+lk+'>Cash Out</button></div>'+
+  var f=form,isIn=f.type==='in',ro=!!f.id&&isLocked(f.odate),lk=f.transfer||ro?' disabled':'';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh" id="fb">←</button><b>'+(f.id?'Edit entry':(isIn?'Cash In':'Cash Out'))+'</b></div>'+(f.id&&!ro?'<button class="gh" id="fdel">Delete</button>':'')+'</div></div>';
+  h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card">'+(ro?'<p class="note lkn">🔒 Locked: entries before '+dlabel(lockCut()).replace(/^\w+, /,'')+' can only be changed by the admin</p>':'')+(f.transfer&&!ro?'<p class="note">⇄ This is a transfer. Only the amount and description can be changed, and the other user\'s cashbook changes with it.</p>':'')+'<div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in"'+lk+'>Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out"'+lk+'>Cash Out</button></div>'+
   '<div class="row2"><div class="dt"><button data-dd="-1"'+lk+'>‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"'+lk+'><button data-dd="1"'+lk+'>›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"'+lk+'></div></div>'+
-  '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'">'+
-  (f.transfer?'':partyPicker(f))+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"'+lk+'><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+photoBox(f)+
+  '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'"'+(ro?' disabled':'')+'>'+
+  (f.transfer||ro?'':partyPicker(f))+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"'+lk+'><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'"'+(ro?' disabled':'')+'>'+(ro?(f.hadPic?photoBox(f):''):photoBox(f))+
   (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div>'+(f.id?'<div class="card hist" id="f_hist">'+histHtml(f.hist)+'</div>':'')+'</div>'+
-  '<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>';
+  (ro?'':'<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>');
   app.innerHTML=h;
+  if(ro)app.querySelectorAll('#pic_in,#pic_rm').forEach(function(x){x.disabled=true;var l=x.closest('label');if(l)l.style.display='none';else x.style.display='none'});
   var G=function(i){return document.getElementById(i)};
   G('fb').onclick=function(){form=null;err='';render()};
   app.querySelectorAll('[data-ty]').forEach(function(b){b.onclick=function(){form.type=b.dataset.ty;render()}});
@@ -573,8 +584,9 @@ function viewForm(){
   if(G('fdel'))G('fdel').onclick=async function(){if(confirm(L(form.transfer?'Delete this transfer? It will be removed from both cashbooks.':'Delete this entry?'))){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
   if(G('f_party'))G('f_party').onchange=function(e){form.party=e.target.value||null;render()};
   G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n){n.innerHTML=partyNote(form);tr(n)}});
-  G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
+  if(G('sx')){G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)}}
   if(!f.id&&!f.amount)G('f_amt').focus();
+  var lc=lockCut();if(lc&&!ro)G('f_date').min=lc;
   if(f.id&&f.hist===undefined)loadHist(f);
   if(f.id&&f.hadPic&&f.pic===undefined&&!f.picLoading){f.picLoading=true;loadPic(f)}
   bindPhoto();
@@ -749,11 +761,34 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.transfer?'<span class="ttg">Transfer</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.transfer?'<span class="ttg">Transfer</span>':'')+(isLocked(t.date)?' <span class="lki" title="Locked">🔒</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
   h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
   return h;
+}
+
+// ---- Lock old entries ----
+// The admin picks how far back users may add, change or delete entries; the server enforces it.
+// biz.lock: -1 = off, 0 = today only, N = today and the N days before. The admin is never locked.
+var LOCKS=[[-1,'Off'],[0,'Today only'],[1,'1 day'],[3,'3 days'],[7,'7 days'],[15,'15 days'],[30,'30 days']];
+function cutFor(n){var d=new Date();d.setDate(d.getDate()-n);return ymd(d)}
+function lockCut(){var n=biz.lock;return users[me]&&users[me].role==='admin'||n==null||n<0?null:cutFor(n)}
+function isLocked(date){var c=lockCut();return !!c&&!!date&&date<c}
+function lockHtml(){
+  if(lockSel==null)lockSel=biz.lock==null?-1:biz.lock;var n=lockSel,cur=biz.lock==null?-1:biz.lock;
+  var h='<div class="uhd"><div><h2 style="margin:0">🔒 Lock old entries</h2><small class="mut">Stop users from changing old records</small></div></div><div class="card">';
+  h+='<label class="fl">Users can change entries from</label><div class="chips lkc">'+LOCKS.map(function(x){return '<button class="chip'+(n===x[0]?' on':'')+'" data-lk="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
+  h+='<div class="lkp">'+(n<0?'<b>Lock is off.</b><p class="mut">Users can add, edit and delete entries of any date.</p>':
+    '<b>🔒 Entries before '+dlabel(cutFor(n)).replace(/^\w+, /,'')+' are locked</b><p class="mut">Users can only add, edit or delete entries dated '+dlabel(cutFor(n)).replace(/^\w+, /,'')+' to today. Older entries, their bill photos and backdated new entries are blocked. The lock moves forward every day.</p>')+
+    '<p class="mut">You (admin) can always change any entry.</p></div>';
+  h+='<div class="err" id="e">'+esc(err)+'</div><button class="p" id="lk_save" style="width:100%"'+(n===cur?' disabled':'')+'>Save</button></div>';
+  return h;
+}
+function bindLock(){
+  app.querySelectorAll('[data-lk]').forEach(function(b){b.onclick=function(){lockSel=+b.dataset.lk;render()}});
+  var s=document.getElementById('lk_save');if(s)s.onclick=async function(){s.disabled=true;
+    try{var r=await api('PUT','/lock',{days:lockSel});biz.lock=r.lock;toast(r.lock<0?L('🔓 Lock turned off'):'🔒 '+L('Entries before '+dlabel(cutFor(r.lock)).replace(/^\w+, /,'')+' are locked'));render()}catch(e){s.disabled=false;seterr(e.message)}};
 }
 
 // ---- Transfers between users ----
@@ -1189,6 +1224,7 @@ function actTextHi(a){
     case 'user_password':return a.owner===me?who+' आपका पासवर्ड बदला':who+' <b>'+esc(a.owner)+'</b> का पासवर्ड बदला';
     case 'user_delete':return who+' यूज़र <b>'+esc(a.owner)+'</b> हटाया';
     case 'settings':return who+' बिज़नेस सेटिंग्स बदलीं';
+    case 'lock':return a.amount<0?who+' एंट्री लॉक बंद किया':who+' यूज़र के लिए '+(a.amount===0?'आज से पहले की':a.amount+' दिन से पुरानी')+' एंट्री लॉक कीं';
     case 'tr_send':return who+' '+(a.owner===me?'आपको':'<b>'+esc(a.owner)+'</b> को')+amt+' भेजे · स्वीकार करना बाकी';
     case 'tr_accept':return who+' '+(a.owner===me?'आपका':'<b>'+esc(a.owner)+'</b> का')+amt+' का ट्रांसफ़र स्वीकार किया';
     case 'tr_reject':return who+' '+(a.owner===me?'आपका':'<b>'+esc(a.owner)+'</b> का')+amt+' का ट्रांसफ़र अस्वीकार किया';
@@ -1244,7 +1280,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='deleted')delList=undefined;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='deleted')delList=undefined;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -1257,12 +1293,13 @@ function bind(admin){
   if(tab==='books'){bindPeople();bindStmt()}
   if(tab==='deleted')bindDeleted();
   if(tab==='transfer')bindTr();
+  if(tab==='lock')bindLock();
   if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
   $('[data-new]').forEach(function(b){b.onclick=function(){form=newForm(b.dataset.new);if(admin&&fuser!=='all')form.user=fuser;err='';render()}});
-  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null,hadPic:!!t.photo,transfer:t.transfer||null};err='';render()}}});
+  $('[data-e]').forEach(function(r){r.onclick=function(){var t=txs.find(function(x){return x.id===r.dataset.e});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null,hadPic:!!t.photo,transfer:t.transfer||null,odate:t.date};err='';render()}}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
   $('[data-rp]').forEach(function(b){b.onclick=function(){sheet={mode:'pw',user:b.dataset.rp};err='';render();G('nu_p').focus()}});
   $('[data-sx]').forEach(function(b){b.onclick=function(){sheet=null;err='';render()}});
