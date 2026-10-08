@@ -177,6 +177,10 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .pt small{display:block;color:var(--mut);font-size:12px}.pt b{font-size:20px}
 .pr .r{text-align:right;flex:none}.pr .r small{display:block;font-size:11px;color:var(--mut)}.pr .r b{font-size:15px}
 .tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--mut);margin-left:6px;font-weight:500;vertical-align:1px}
+/* Party picker with search */
+.ppk{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;margin-bottom:10px;padding:10px 12px;background:var(--bg)}
+.pks{max-height:80vh;display:flex;flex-direction:column}.pkl{overflow-y:auto;margin:0 -16px;padding:0 16px}.pki{width:100%;display:flex;gap:10px;align-items:center;text-align:left;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:none;padding:10px 0}
+.pki .un{flex:1;min-width:0}.pki .un small{display:block}.pki .r{text-align:right}.pki .r small{display:block;color:var(--mut);font-size:11px}.pki.on{background:rgba(15,118,110,.08)}.pke{text-align:center;padding:12px}
 /* Lock old entries */
 .chips.lkc{padding:0;display:flex;flex-wrap:wrap;margin:0 0 12px}.lkp{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:12px}.lkp p{margin:6px 0 0;font-size:13px}.lki{font-size:12px}.lkn{color:var(--out);font-weight:600}
 /* Transfers */
@@ -368,6 +372,7 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'Choose party':'पार्टी चुनें','No party · tap to choose':'कोई पार्टी नहीं · चुनने के लिए टैप करें','🔍 Search name or phone':'🔍 नाम या फ़ोन से खोजें','No party found':'कोई पार्टी नहीं मिली',
 'The admin does not add entries':'एडमिन एंट्री नहीं जोड़ता','The admin does not add parties':'एडमिन पार्टी नहीं जोड़ता',
 'Ask to delete':'हटाने को कहें','⏳ Waiting for OK':'⏳ मंज़ूरी बाकी','Withdraw request':'अनुरोध वापस लें','✕ Refuse':'✕ मना करें','✓ Agree':'✓ मंज़ूर','If you agree, both cashbooks change.':'मंज़ूर करने पर दोनों कैशबुक बदलेंगी।',
 'Requests for your OK':'आपकी मंज़ूरी के लिए','⏳ Change asked':'⏳ बदलाव मांगा','⏳ Delete asked':'⏳ हटाना मांगा','Refuse this request?':'यह अनुरोध मना करें?',
@@ -595,6 +600,7 @@ function viewForm(){
   (f.transfer||ro?'':partyPicker(f))+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"'+lk+'><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'"'+(ro?' disabled':'')+'>'+(ro?(f.hadPic?photoBox(f):''):photoBox(f))+
   (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div>'+(f.id?'<div class="card hist" id="f_hist">'+histHtml(f.hist)+'</div>':'')+'</div>'+
   (ro?'':trq?'<div class="fixb"><div class="bbtn"><button id="sx">Ask '+esc(tro)+' to change</button></div></div>':'<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>');
+  if(f.pick)h+=pickSheet(f);
   app.innerHTML=h;
   if(ro)app.querySelectorAll('#pic_in,#pic_rm').forEach(function(x){x.disabled=true;var l=x.closest('label');if(l)l.style.display='none';else x.style.display='none'});
   var G=function(i){return document.getElementById(i)};
@@ -602,7 +608,11 @@ function viewForm(){
   app.querySelectorAll('[data-ty]').forEach(function(b){b.onclick=function(){form.type=b.dataset.ty;render()}});
   app.querySelectorAll('[data-dd]').forEach(function(b){b.onclick=function(){var d=new Date((form.date||today())+'T00:00:00');d.setDate(d.getDate()+parseInt(b.dataset.dd));form.date=ymd(d);render()}});
   if(G('fdel'))G('fdel').onclick=async function(){if(trq){if(confirm(L('Ask '+tro+' to delete this transfer? Nothing changes until they agree.')))trAsk(trq,{kind:'delete'});return}if(confirm(L(form.transfer?'Delete this transfer? It will be removed from both cashbooks.':'Delete this entry?'))){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
-  if(G('f_party'))G('f_party').onchange=function(e){form.party=e.target.value||null;render()};
+  if(G('f_party'))G('f_party').onclick=function(){form.pick=true;render();var qi=G('pk_q');if(qi)qi.focus()};
+  if(G('pk_q'))G('pk_q').oninput=function(e){var q=e.target.value.trim().toLowerCase(),n=0;app.querySelectorAll('[data-q]').forEach(function(b){var ok=!q||b.dataset.q.indexOf(q)>=0;b.style.display=ok?'':'none';if(ok)n++});
+    app.querySelector('[data-pk=""]').style.display=q?'none':'';G('pk_none').hidden=!!n||!q};
+  app.querySelectorAll('[data-pk]').forEach(function(b){b.onclick=function(){form.party=b.dataset.pk||null;form.pick=false;render()}});
+  app.querySelectorAll('[data-pkx]').forEach(function(b){b.onclick=function(){form.pick=false;render()}});
   G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n){n.innerHTML=partyNote(form);tr(n)}});
   if(G('sx')){G('sx').onclick=function(){save(true)};if(G('sc'))G('sc').onclick=function(){save(false)}}
   bindTrReq();
@@ -1249,9 +1259,18 @@ function bindPeople(){
 function partyPicker(f){
   if(f.user&&f.user!==me)return '';
   var mine=myParties();if(!mine.length)return '<p class="note">Tip: add customers and suppliers under <b>'+(users[me]&&users[me].role==='admin'?'People → My parties':'Parties')+'</b> to track what each one owes.</p>';
-  var h='<label class="fl" for="f_party">Party (optional)</label><select id="f_party"><option value="">No party</option>'+mine.map(function(p){return '<option value="'+esc(p.id)+'"'+(f.party===p.id?' selected':'')+'>'+esc(p.name)+' · '+PK[p.kind]+'</option>'}).join('')+'</select>';
+  // Tapping the field opens a sheet with a search box, so a long party list stays quick to use.
+  var sel=f.party?mine.find(function(p){return p.id===f.party}):null;
+  var h='<label class="fl" for="f_party">Party (optional)</label><button type="button" class="ppk" id="f_party">'+(sel?'<span><b>'+esc(sel.name)+'</b> <small class="mut">· '+PK[sel.kind]+'</small></span>':'<span class="mut">No party · tap to choose</span>')+'<span aria-hidden="true">🔍</span></button>';
   if(f.party&&pName(f.party))h+='<p class="note" id="f_pnote" style="margin:-4px 0 10px">'+partyNote(f)+'</p>';
   return h;
+}
+function pickSheet(f){
+  var mine=myParties();
+  return '<div class="ov" data-pkx></div><div class="sheet pks" role="dialog" aria-label="Choose party"><h2>Choose party</h2><input id="pk_q" placeholder="🔍 Search name or phone" autocomplete="off">'+
+    '<div class="pkl"><button class="pki'+(f.party?'':' on')+'" data-pk=""><span class="av sm">–</span><span class="un"><b>No party</b></span></button>'+
+    mine.map(function(p){var b=pBal(p.id);return '<button class="pki'+(f.party===p.id?' on':'')+'" data-pk="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'</b><small class="mut">'+PK[p.kind]+(p.phone?' · '+esc(p.phone):'')+'</small></span><span class="r"><small>'+balLabel(b)+'</small><b class="'+(b>0?'in':b<0?'out':'')+'">'+fmt(Math.abs(b))+'</b></span></button>'}).join('')+
+    '</div><p class="mut pke" id="pk_none" hidden>No party found</p></div>';
 }
 function actTextHi(a){
   var who=a.actor===me?'आपने':'<b>'+esc(a.actor)+'</b> ने',ty=a.type==='in'?'नकद आया':'नकद गया',amt=a.amount!=null?' '+fmt(a.amount):'';
