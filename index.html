@@ -194,6 +194,8 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .pcnt{display:inline-block;margin:-4px 0 10px 48px;border:0;background:var(--bg);color:var(--pri);font-size:12px;font-weight:600;padding:4px 10px;border-radius:14px}
 .lopt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;border-bottom:1px solid var(--bd);border-radius:0;background:transparent;padding:14px 0}.lopt:last-child{border:0}
 .lopt>span:first-child{flex:1}.lopt b,.lopt small{display:block}.lopt b{font-size:17px}.lopt.on b{color:var(--pri)}.lck{color:var(--pri);font-size:20px;font-weight:700;width:24px;text-align:center}
+.spin{width:34px;height:34px;margin:4px auto 14px;border-radius:50%;border:3px solid var(--bd);border-top-color:var(--pri);animation:spin .9s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spin{animation:none}}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -243,7 +245,7 @@ async function api(m,u,b){
   var r=await fetch(API+'/api'+u,{method:m,headers:h,body:b?JSON.stringify(b):undefined}),d=null;
   try{d=await r.json()}catch(e){}
   if(r.status===401&&token){signout();throw new Error('Session expired. Please sign in again.')}
-  if(!r.ok)throw new Error((d&&d.error)||'Request failed ('+r.status+')');
+  if(!r.ok){var er=new Error((d&&d.error)||'Request failed ('+r.status+')');er.status=r.status;throw er}
   return d;
 }
 function signout(){menu=false;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
@@ -251,13 +253,31 @@ async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;
   parties=d.parties||[];biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
+// Start-up: the free server sleeps when idle and takes up to a minute to wake, so keep retrying
+// and keep the saved login. Only a 401 from the server (invalid session) signs the user out.
+var sleepMs=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+function waitScreen(title,sub,retry){
+  app.innerHTML='<div class="card ctr" style="text-align:center"><div class="spin"'+(retry?' style="display:none"':'')+'></div><h2>'+esc(title)+'</h2><p class="mut">'+esc(sub)+'</p>'+(retry?'<button class="p" id="retry" style="width:100%">Retry</button>':'')+'</div>';
+  tr(app);var b=document.getElementById('retry');if(b)b.onclick=boot;
+}
+async function boot(){
+  var t0=Date.now(),slow=setTimeout(function(){waitScreen('Connecting…','The server is waking up. This can take up to a minute.')},1500);
+  try{
+    for(;;){
+      try{needsSetup=(await api('GET','/bootstrap')).needsSetup;token=sget();if(token&&!needsSetup)await load();break}
+      catch(e){
+        if(e.status===401)break;
+        if(Date.now()-t0>100000){waitScreen('Cannot reach server','Check your internet connection and try again. You are still signed in.',true);return}
+        waitScreen('Connecting…','The server is waking up. This can take up to a minute.');await sleepMs(3000);
+      }
+    }
+  }finally{clearTimeout(slow)}
+  render();
+}
 async function init(){
   app.addEventListener('click',function(e){if(e.target.id!=='inst'||!inst)return;var p=inst;inst=null;p.prompt();if(menu){menu=false;history.back()}render();p.userChoice.finally(function(){refresh()})});
   app.addEventListener('input',function(e){var m={f_date:'date',f_time:'time',f_amt:'amount',f_notes:'notes',f_desc:'desc'}[e.target.id];if(form&&m)form[m]=e.target.value});
-  try{needsSetup=(await api('GET','/bootstrap')).needsSetup}catch(e){app.innerHTML='<div class="card ctr"><h2>Cannot reach server</h2><p class="err">'+esc(e.message)+'</p></div>';return}
-  token=sget();
-  if(token&&!needsSetup){try{await load()}catch(e){token=null;sset(null)}}
-  render();
+  await boot();
   setInterval(function(){if(!token||form||sheet||psheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
 }
 
@@ -270,7 +290,7 @@ var HI={
 'Cashflow':'कैशफ्लो','Cashflow setup':'कैशफ्लो सेटअप','Create the admin account. You will use it to add other users.':'एडमिन खाता बनाएं। इससे आप दूसरे यूज़र जोड़ेंगे।',
 'Admin username':'एडमिन यूज़रनेम','Password (min 6 chars)':'पासवर्ड (कम से कम 6 अक्षर)','Confirm password':'पासवर्ड दोबारा लिखें','Create admin':'एडमिन बनाएं',
 'Sign in to continue':'जारी रखने के लिए साइन इन करें','Username':'यूज़रनेम','Password':'पासवर्ड','Sign in':'साइन इन','Sign out':'साइन आउट','Install app':'ऐप इंस्टॉल करें',
-'Cannot reach server':'सर्वर से कनेक्ट नहीं हो पा रहा','Menu':'मेनू','Notifications':'सूचनाएं','Admin':'एडमिन','User':'यूज़र','Admin (you)':'एडमिन (आप)',
+'Cannot reach server':'सर्वर से कनेक्ट नहीं हो पा रहा','Connecting…':'कनेक्ट हो रहा है…','The server is waking up. This can take up to a minute.':'सर्वर शुरू हो रहा है। इसमें एक मिनट तक लग सकता है।','Check your internet connection and try again. You are still signed in.':'इंटरनेट कनेक्शन देखें और फिर कोशिश करें। आप अभी भी साइन इन हैं।','Retry':'फिर कोशिश करें','Menu':'मेनू','Notifications':'सूचनाएं','Admin':'एडमिन','User':'यूज़र','Admin (you)':'एडमिन (आप)',
 'Entries':'एंट्री','Dashboard':'डैशबोर्ड','People':'लोग','Parties':'पार्टियां','Users':'यूज़र','My parties':'मेरी पार्टियां','All parties':'सभी पार्टियां',
 'Manage users':'यूज़र मैनेज करें','Export PDF / Excel':'PDF / Excel एक्सपोर्ट','Business settings':'बिज़नेस सेटिंग्स','Language':'भाषा','Language / भाषा':'भाषा / Language',
 'All':'सभी','Daily':'रोज़ाना','Weekly':'साप्ताहिक','Monthly':'मासिक','Yearly':'सालाना','All users':'सभी यूज़र','Search notes, amount, user':'नोट, रकम, यूज़र खोजें',
