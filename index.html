@@ -180,6 +180,7 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 /* Lock old entries */
 .chips.lkc{padding:0;display:flex;flex-wrap:wrap;margin:0 0 12px}.lkp{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:12px}.lkp p{margin:6px 0 0;font-size:13px}.lki{font-size:12px}.lkn{color:var(--out);font-weight:600}
 /* Transfers */
+.rqb{background:rgba(245,158,11,.1);border-radius:10px;padding:10px 12px;margin-bottom:12px}.rqb p{margin:6px 0}.rqb .bbtn{margin-top:8px}.rqb .acc{background:#047857;border-color:#047857;color:#fff}.rqb .rej{color:var(--out)}.inc .rqb{margin:8px 0 0}
 .mbdg{margin-left:auto;background:#f59e0b;color:#fff;border-radius:10px;font-size:11px;font-weight:700;padding:1px 7px}
 .ttg{font-size:11px;background:rgba(15,118,110,.12);color:var(--pri);border-radius:5px;padding:1px 6px;margin-left:6px;font-weight:600;vertical-align:1px}
 .trh{font-size:15px;margin:16px 0 8px}.trf label{font-size:13px;color:var(--mut);display:block;margin:0 0 4px}.sm2{font-size:12px;margin:8px 0 0}
@@ -283,7 +284,7 @@ a.wa{background:#16a34a;color:#fff;border-radius:16px;padding:5px 12px;font-size
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),lockSel=null,transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),rev=null,lockSel=null,transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -297,6 +298,8 @@ var MENU=[
   {id:'backup',icon:'💾',label:'Download backup'},
   {id:'lang',icon:'🌐',label:'Language / भाषा'}
 ];
+// Sums are rounded to paise at every step so ₹100.10 + ₹200.20 − ₹300.30 is exactly 0, not −0.00000000000006.
+var r2=function(n){return Math.round(n*100)/100};
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
 var esc=function(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML.replace(/"/g,'&quot;')};
 var ymd=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
@@ -325,7 +328,7 @@ async function api(m,u,b){
   return d;
 }
 function signout(){menu=false;transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
-async function load(){var d=await api('GET','/data');me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
+async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
 function instBtn(c){return inst?'<button class="'+c+'" id="inst">Install app</button>':''}
@@ -354,7 +357,9 @@ async function init(){
   app.addEventListener('click',function(e){if(e.target.id!=='inst'||!inst)return;var p=inst;inst=null;p.prompt();if(menu){menu=false;history.back()}render();p.userChoice.finally(function(){refresh()})});
   app.addEventListener('input',function(e){var m={f_date:'date',f_time:'time',f_amt:'amount',f_notes:'notes',f_desc:'desc'}[e.target.id];if(form&&m)form[m]=e.target.value});
   await boot();
-  setInterval(function(){if(!token||form||sheet||psheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;load().then(refresh).catch(function(){})},20000);
+  // Every 20 s ask the server for its revision number (a few bytes); download everything only if it changed.
+  setInterval(function(){if(!token||form||sheet||psheet)return;var a=document.activeElement;if(a&&a.tagName==='INPUT'&&app.contains(a))return;
+    api('GET','/rev').then(function(r){if(r.rev!==rev)return load().then(refresh)}).catch(function(){})},20000);
 }
 
 // ---- Language (English / हिंदी) ----
@@ -363,6 +368,10 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'Ask to delete':'हटाने को कहें','⏳ Waiting for OK':'⏳ मंज़ूरी बाकी','Withdraw request':'अनुरोध वापस लें','✕ Refuse':'✕ मना करें','✓ Agree':'✓ मंज़ूर','If you agree, both cashbooks change.':'मंज़ूर करने पर दोनों कैशबुक बदलेंगी।',
+'Requests for your OK':'आपकी मंज़ूरी के लिए','⏳ Change asked':'⏳ बदलाव मांगा','⏳ Delete asked':'⏳ हटाना मांगा','Refuse this request?':'यह अनुरोध मना करें?',
+'✓ Agreed · both cashbooks updated':'✓ मंज़ूर · दोनों कैशबुक अपडेट','Refused · nothing changed':'मना किया · कुछ नहीं बदला','Request withdrawn':'अनुरोध वापस लिया','Photo saved':'फ़ोटो सेव हुई',
+'A request for this transfer is already waiting':'इस ट्रांसफ़र का एक अनुरोध पहले से बाकी है','Nothing was changed':'कुछ नहीं बदला गया','You cannot answer your own request':'आप अपने अनुरोध का जवाब नहीं दे सकते',
 'Lock old entries':'पुरानी एंट्री लॉक','🔒 Lock old entries':'🔒 पुरानी एंट्री लॉक','Stop users from changing old records':'यूज़र को पुराना रिकॉर्ड बदलने से रोकें','Users can change entries from':'यूज़र इतने दिन की एंट्री बदल सकते हैं',
 'Off':'बंद','Today only':'सिर्फ़ आज','Lock is off.':'लॉक बंद है।','Users can add, edit and delete entries of any date.':'यूज़र किसी भी तारीख की एंट्री जोड़, बदल और हटा सकते हैं।',
 'You (admin) can always change any entry.':'आप (एडमिन) हमेशा कोई भी एंट्री बदल सकते हैं।','🔓 Lock turned off':'🔓 लॉक बंद किया',
@@ -423,6 +432,10 @@ var HI={
 'Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
+[/^⇄ Transfer with (.+)\. Changes or deleting need (.+)'s OK\. Nothing changes until they agree\.$/,'⇄ $1 के साथ ट्रांसफ़र। बदलने या हटाने के लिए $2 की मंज़ूरी चाहिए। उनके मानने तक कुछ नहीं बदलेगा।'],
+[/^Ask (.+) to change$/,'$1 से बदलने को कहें'],[/^Ask (.+) to delete this transfer\? Nothing changes until they agree\.$/,'$1 से यह ट्रांसफ़र हटाने को कहें? उनके मानने तक कुछ नहीं बदलेगा।'],[/^⏳ Asked (.+) for OK$/,'⏳ $1 से मंज़ूरी मांगी'],
+[/^asked to change it from (₹[\d,.]+) to (₹[\d,.]+)(.*)\.$/,'ने इसे $1 से $2 करने को कहा$3।'],[/^asked to delete this (₹[\d,.]+) transfer\.$/,'ने यह $1 का ट्रांसफ़र हटाने को कहा।'],
+[/^Waiting for (.+) to agree\. Both cashbooks stay as they are until then\.$/,'$1 की मंज़ूरी का इंतज़ार। तब तक दोनों कैशबुक जैसी हैं वैसी रहेंगी।'],
 [/^Locked: entries before (.+) can only be changed by the admin$/,'लॉक: $1 से पहले की एंट्री सिर्फ़ एडमिन बदल सकता है'],[/^🔒 Locked: entries before (.+) can only be changed by the admin$/,'🔒 लॉक: $1 से पहले की एंट्री सिर्फ़ एडमिन बदल सकता है'],
 [/^🔒 Entries before (.+) are locked$/,'🔒 $1 से पहले की एंट्री लॉक हैं'],[/^Entries before (.+) are locked$/,'$1 से पहले की एंट्री लॉक हैं'],[/^(\d+) days?$/,'$1 दिन'],
 [/^Users can only add, edit or delete entries dated (.+) to today\. Older entries, their bill photos and backdated new entries are blocked\. The lock moves forward every day\.$/,'यूज़र सिर्फ़ $1 से आज तक की एंट्री जोड़, बदल या हटा सकते हैं। पुरानी एंट्री, उनकी बिल फ़ोटो और पुरानी तारीख की नई एंट्री बंद रहेंगी। लॉक हर दिन आगे बढ़ता है।'],
@@ -542,12 +555,16 @@ function actText(a){
     case 'tr_accept':return who+' accepted '+(a.owner===me?'your transfer of'+amt:'a transfer of'+amt+' from <b>'+esc(a.owner)+'</b>');
     case 'tr_reject':return who+' rejected '+(a.owner===me?'your transfer of'+amt:'a transfer of'+amt+' from <b>'+esc(a.owner)+'</b>');
     case 'tr_cancel':return who+' cancelled a transfer of'+amt+(a.owner===me?' to you':' to <b>'+esc(a.owner)+'</b>');
+    case 'tr_req':return who+' asked to '+(a.type==='edit'?'change a transfer '+fmt(a.prev)+' → '+fmt(a.amount):'delete a transfer of'+amt)+(a.owner===me?' · needs your OK':' (with <b>'+esc(a.owner)+'</b>)');
+    case 'tr_req_agree':return who+' agreed to '+(a.type==='edit'?'change the transfer to'+amt:'delete the transfer of'+amt);
+    case 'tr_req_refuse':return who+' refused to '+(a.type==='edit'?'change the transfer to'+amt:'delete the transfer of'+amt);
+    case 'tr_req_withdraw':return who+' withdrew the request to '+(a.type==='edit'?'change a transfer':'delete a transfer of'+amt);
   }
   return who+' made a change';
 }
 function actIcon(a){
   if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
-  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄'],lock:['','🔒']}[a.action]||['','•'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄'],lock:['','🔒'],tr_req:['','⏳'],tr_req_agree:['ci','✓'],tr_req_refuse:['co','✕'],tr_req_withdraw:['','↩']}[a.action]||['','•'];
 }
 function notifHtml(){
   var an=menuAnim?' an':'';menuAnim=false;
@@ -567,24 +584,27 @@ function openMenu(kind){menu=typeof kind==='string'?kind:'menu';menuAnim=true;hi
 function closeMenu(){if(menu){menu=false;history.back();render()}}
 
 function viewForm(){
-  var f=form,isIn=f.type==='in',ro=!!f.id&&isLocked(f.odate),lk=f.transfer||ro?' disabled':'';
-  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh" id="fb">←</button><b>'+(f.id?'Edit entry':(isIn?'Cash In':'Cash Out'))+'</b></div>'+(f.id&&!ro?'<button class="gh" id="fdel">Delete</button>':'')+'</div></div>';
-  h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card">'+(ro?'<p class="note lkn">🔒 Locked: entries before '+dlabel(lockCut()).replace(/^\w+, /,'')+' can only be changed by the admin</p>':'')+(f.transfer&&!ro?'<p class="note">⇄ This is a transfer. Only the amount and description can be changed, and the other user\'s cashbook changes with it.</p>':'')+'<div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in"'+lk+'>Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out"'+lk+'>Cash Out</button></div>'+
+  // A user's transfer entry: changes are sent to the other user as a request (they must agree).
+  var f=form,trq=f.transfer&&users[me].role!=='admin'?transfers.find(function(x){return x.id===f.transfer})||null:null,tro=trq?(trq.from===me?trq.to:trq.from):'',trp=trq&&trq.req;
+  var isIn=f.type==='in',ro=!!f.id&&isLocked(f.odate)||!!trp,lk=f.transfer||ro?' disabled':'';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh" id="fb">←</button><b>'+(f.id?'Edit entry':(isIn?'Cash In':'Cash Out'))+'</b></div>'+(f.id&&!ro?'<button class="gh" id="fdel">'+(trq?'Ask to delete':'Delete')+'</button>':'')+'</div></div>';
+  h+='<div class="pad" style="padding-bottom:100px">'+(f.last?'<div class="lsv"><span>✓</span>Last saved: '+savedText(f.last.d).replace(/^Saved · /,'')+' <small>'+t12(hhmm(new Date(f.last.at)))+'</small></div>':'')+'<div class="card">'+(trp?trReqBox(trq,true):ro?'<p class="note lkn">🔒 Locked: entries before '+dlabel(lockCut()).replace(/^\w+, /,'')+' can only be changed by the admin</p>':'')+(trq&&!ro?'<p class="note">⇄ Transfer with '+esc(tro)+'. Changes or deleting need '+esc(tro)+'\'s OK. Nothing changes until they agree.</p>':'')+(f.transfer&&!trq&&!ro?'<p class="note">⇄ This is a transfer. Only the amount and description can be changed, and the other user\'s cashbook changes with it.</p>':'')+'<div class="seg"><button class="pill i '+(isIn?'on':'')+'" data-ty="in"'+lk+'>Cash In</button><button class="pill o '+(!isIn?'on':'')+'" data-ty="out"'+lk+'>Cash Out</button></div>'+
   '<div class="row2"><div class="dt"><button data-dd="-1"'+lk+'>‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"'+lk+'><button data-dd="1"'+lk+'>›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"'+lk+'></div></div>'+
   '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'"'+(ro?' disabled':'')+'>'+
   (f.transfer||ro?'':partyPicker(f))+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"'+lk+'><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'"'+(ro?' disabled':'')+'>'+(ro?(f.hadPic?photoBox(f):''):photoBox(f))+
   (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div>'+(f.id?'<div class="card hist" id="f_hist">'+histHtml(f.hist)+'</div>':'')+'</div>'+
-  (ro?'':'<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>');
+  (ro?'':trq?'<div class="fixb"><div class="bbtn"><button id="sx">Ask '+esc(tro)+' to change</button></div></div>':'<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>');
   app.innerHTML=h;
   if(ro)app.querySelectorAll('#pic_in,#pic_rm').forEach(function(x){x.disabled=true;var l=x.closest('label');if(l)l.style.display='none';else x.style.display='none'});
   var G=function(i){return document.getElementById(i)};
   G('fb').onclick=function(){form=null;err='';render()};
   app.querySelectorAll('[data-ty]').forEach(function(b){b.onclick=function(){form.type=b.dataset.ty;render()}});
   app.querySelectorAll('[data-dd]').forEach(function(b){b.onclick=function(){var d=new Date((form.date||today())+'T00:00:00');d.setDate(d.getDate()+parseInt(b.dataset.dd));form.date=ymd(d);render()}});
-  if(G('fdel'))G('fdel').onclick=async function(){if(confirm(L(form.transfer?'Delete this transfer? It will be removed from both cashbooks.':'Delete this entry?'))){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
+  if(G('fdel'))G('fdel').onclick=async function(){if(trq){if(confirm(L('Ask '+tro+' to delete this transfer? Nothing changes until they agree.')))trAsk(trq,{kind:'delete'});return}if(confirm(L(form.transfer?'Delete this transfer? It will be removed from both cashbooks.':'Delete this entry?'))){try{await api('DELETE','/tx/'+form.id);await load();form=null;render()}catch(e){seterr(e.message)}}};
   if(G('f_party'))G('f_party').onchange=function(e){form.party=e.target.value||null;render()};
   G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n){n.innerHTML=partyNote(form);tr(n)}});
-  if(G('sx')){G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)}}
+  if(G('sx')){G('sx').onclick=function(){save(true)};if(G('sc'))G('sc').onclick=function(){save(false)}}
+  bindTrReq();
   if(!f.id&&!f.amount)G('f_amt').focus();
   var lc=lockCut();if(lc&&!ro)G('f_date').min=lc;
   if(f.id&&f.hist===undefined)loadHist(f);
@@ -639,6 +659,11 @@ async function save(exit){
   var f=form,amt=parseFloat(f.amount);
   if(!(amt>0))return seterr('Enter a valid amount');if(!f.date)return seterr('Pick a date');
   var data={type:f.type,amount:Math.round(amt*100)/100,date:f.date,time:f.time||'',notes:f.notes.trim(),desc:f.desc.trim(),user:f.user||undefined,party:f.party||null};
+  var trq=f.transfer&&users[me].role!=='admin'?transfers.find(function(x){return x.id===f.transfer}):null;
+  if(trq){var old=txs.find(function(t){return t.id===f.id})||{};
+    if(data.amount!==old.amount||data.desc!==(old.desc||''))return trAsk(trq,{kind:'edit',amount:data.amount,notes:data.desc});
+    if(f.picDirty){if(await savePhoto(f,f.id)){await load();form=null;toast('✓ '+L('Photo saved'));render()}return}
+    form=null;render();return}
   var sv=document.getElementById('sx'),sc=document.getElementById('sc');if(sv)sv.disabled=true;if(sc)sc.disabled=true;
   var picOk=true;
   try{var row=f.id?await api('PUT','/tx/'+f.id,data):await api('POST','/tx',data);picOk=await savePhoto(f,f.id||row.id);await load()}catch(e){if(sv)sv.disabled=false;if(sc)sc.disabled=false;return seterr(e.message)}
@@ -662,7 +687,7 @@ var spanDays=function(a,b){return Math.round((new Date(b+'T00:00:00')-new Date(a
 function dashData(base){
   var td=today(),mo=td.slice(0,7),z=function(){return {i:0,o:0,n:0}},A=z(),T=z(),M=z(),B=[],idx={};
   for(var k=addDays(td,-13);k<=td;k=addDays(k,1)){idx[k]=B.length;B.push({k:k,i:0,o:0,n:0})}
-  var add=function(x,t){t.type==='in'?x.i+=t.amount:x.o+=t.amount;x.n++};
+  var add=function(x,t){t.type==='in'?x.i=r2(x.i+t.amount):x.o=r2(x.o+t.amount);x.n++};
   base.forEach(function(t){var d=t.date||'';add(A,t);if(d===td)add(T,t);if(d.slice(0,7)===mo)add(M,t);if(idx[d]!=null)add(B[idx[d]],t)});
   return {A:A,T:T,M:M,B:B};
 }
@@ -685,7 +710,7 @@ function dashHtml(admin){
     '<div class="lg"><span><i style="background:var(--cin)"></i>In <b>'+fmt(bi)+'</b></span><span><i style="background:var(--cout)"></i>Out <b>'+fmt(bo)+'</b></span></div><div class="cw" id="c_flow"></div></div>';
   // daily summary
   var cut=range==='all'?'':addDays(today(),-(parseInt(range)||7)+1),by={};
-  base.forEach(function(t){if(cut&&t.date<cut)return;var x=by[t.date]=by[t.date]||{i:0,o:0,n:0};t.type==='in'?x.i+=t.amount:x.o+=t.amount;x.n++});
+  base.forEach(function(t){if(cut&&t.date<cut)return;var x=by[t.date]=by[t.date]||{i:0,o:0,n:0};t.type==='in'?x.i=r2(x.i+t.amount):x.o=r2(x.o+t.amount);x.n++});
   var dates=Object.keys(by).sort().reverse();
   h+='<div class="card cc"><div class="chd"><div><h2>Daily summary</h2><small class="mut">'+dates.length+' day'+(dates.length===1?'':'s')+' with entries</small></div>'+
     '<select id="d_range" class="sel-sm">'+[['7','Last 7 days'],['14','Last 14 days'],['30','Last 30 days'],['all','All time']].map(function(r){return '<option value="'+r[0]+'"'+(range===r[0]?' selected':'')+'>'+r[1]+'</option>'}).join('')+'</select></div>';
@@ -698,7 +723,7 @@ function dashHtml(admin){
   if(admin&&fuser==='all'){
     var names={};Object.keys(users).forEach(function(k){names[k]=1});txs.forEach(function(t){names[t.user]=1});
     h+='<div class="card cc"><div class="chd"><div><h2>By user</h2><small class="mut">All-time · tap to open their entries</small></div></div>';
-    Object.keys(names).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i+=t.amount:o+=t.amount}});
+    Object.keys(names).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i=r2(i+t.amount):o=r2(o+t.amount)}});
       h+='<button class="urow" data-vu="'+esc(k)+'"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(k)+(users[k]?'':' <small class="mut">(removed)</small>')+'</b><small class="mut"><span class="in">+'+fmt(i)+'</span> · <span class="out">−'+fmt(o)+'</span> · '+n+' entr'+(n===1?'y':'ies')+'</small></span><b class="ub'+(i-o<0?' neg':'')+'">'+sgnb(i-o)+'</b></button>'});
     h+='</div>';
   }
@@ -742,14 +767,14 @@ function hover(box,n,x,show,hide){
 
 function txHtml(admin){
   var base=txs.filter(function(t){return admin?(fuser==='all'||t.user===fuser):t.user===me}).sort(cmp);
-  var bal=0,B={};base.forEach(function(t){bal+=t.type==='in'?t.amount:-t.amount;B[t.id]=bal});
+  var bal=0,B={};base.forEach(function(t){bal=r2(bal+(t.type==='in'?t.amount:-t.amount));B[t.id]=bal});
   var td=today(),mo=td.slice(0,7),yr=td.slice(0,4),wk=new Date();wk.setDate(wk.getDate()-((wk.getDay()+6)%7));var ws=ymd(wk),qq=q.trim().toLowerCase();
   var list=base.filter(function(t){
     var d=t.date||'';
     if(period==='daily'&&d!==td)return false;if(period==='weekly'&&d<ws)return false;if(period==='monthly'&&d.slice(0,7)!==mo)return false;if(period==='yearly'&&d.slice(0,4)!==yr)return false;
     if(qq&&(nt(t)+' '+(t.desc||'')+' '+t.user+' '+t.amount).toLowerCase().indexOf(qq)<0)return false;return true}).reverse();
   // In the admin's "All users" view a transfer is money moving between users, not income or expense.
-  var xt=admin&&fuser==='all',ti=0,to=0;list.forEach(function(t){if(xt&&t.transfer)return;t.type==='in'?ti+=t.amount:to+=t.amount});
+  var xt=admin&&fuser==='all',ti=0,to=0;list.forEach(function(t){if(xt&&t.transfer)return;t.type==='in'?ti=r2(ti+t.amount):to=r2(to+t.amount)});
   var P=[['all','All'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['yearly','Yearly']];
   var h='<div class="sum3"><div><small>Total In</small><b class="in">'+fmt(ti)+'</b></div><div><small>Total Out</small><b class="out">'+fmt(to)+'</b></div><div><small>Balance</small><b'+(ti-to<0?' class="out"':'')+'>'+sgnb(ti-to)+'</b></div></div>';
   h+='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
@@ -795,17 +820,29 @@ function bindLock(){
 // A user sends money to another user; nothing reaches either cashbook until the receiver accepts.
 // Then the sender gets a Cash Out "⇄ To x" and the receiver a Cash In "⇄ From y", linked together.
 var TST={pending:['pd','⏳ Pending'],accepted:['ok','✓ Accepted'],rejected:['no','✕ Rejected'],cancelled:['no','Cancelled'],deleted:['no','Deleted']};
-function trWaiting(){return transfers.filter(function(t){return t.to===me&&t.status==='pending'})}
+function trWaiting(){return transfers.filter(function(t){return t.to===me&&t.status==='pending'||t.req&&t.req.by!==me&&(t.from===me||t.to===me)})}
 function trRow(t,sent){var o=sent?t.to:t.from,st=TST[t.status]||['',''];
   return '<div class="trr"><span class="av sm">'+esc(o.charAt(0).toUpperCase())+'</span><div class="un"><b>'+(sent?'To ':'From ')+esc(o)+'</b><small class="mut">'+(t.notes?esc(t.notes)+' · ':'')+dshort(t.date)+'</small></div>'+
-    '<div class="r"><b class="'+(t.status==='accepted'?(sent?'out':'in'):'')+'">'+fmt(t.amount)+'</b><span class="tst '+st[0]+'">'+st[1]+'</span>'+(sent&&t.status==='pending'?'<button class="sm" data-trc="'+esc(t.id)+'">Cancel</button>':'')+'</div></div>'}
+    '<div class="r"><b class="'+(t.status==='accepted'?(sent?'out':'in'):'')+'">'+fmt(t.amount)+'</b><span class="tst '+st[0]+'">'+st[1]+'</span>'+(t.req?'<span class="tst pd">⏳ '+(t.req.kind==='edit'?'Change':'Delete')+' asked</span>':'')+(sent&&t.status==='pending'?'<button class="sm" data-trc="'+esc(t.id)+'">Cancel</button>':'')+'</div></div>'}
+// A change or delete request on an accepted transfer. mine: the request card inside the entry form.
+function trReqText(t){var q=t.req;return q.kind==='edit'?'change it from '+fmt(t.amount)+' to '+fmt(q.amount)+(q.notes!==t.notes?' (note: “'+esc(q.notes)+'”)':''):'delete this '+fmt(t.amount)+' transfer'}
+function trReqBox(t,inForm){var q=t.req,byMe=q.by===me;
+  return '<div class="rqb"><span class="tst pd">⏳ Waiting for OK</span><p><b>'+(byMe?'You':esc(q.by))+'</b> asked to '+trReqText(t)+'.</p>'+(byMe?'<p class="mut sm2">Waiting for '+esc(t.from===me?t.to:t.from)+' to agree. Both cashbooks stay as they are until then.</p><button class="sm" data-rqw="'+esc(t.id)+'">Withdraw request</button>':
+    '<div class="bbtn"><button class="lt rej" data-rqr="'+esc(t.id)+'">✕ Refuse</button><button class="acc" data-rqa="'+esc(t.id)+'">✓ Agree</button></div><p class="mut sm2">If you agree, both cashbooks change.</p>')+'</div>'}
+async function trAsk(t,body){try{await api('POST','/transfers/'+t.id+'/request',body);await load();form=null;err='';toast('⏳ '+L('Asked '+(t.from===me?t.to:t.from)+' for OK'));render()}catch(e){seterr(e.message)}}
+function bindTrReq(){
+  var go=function(sel,ans,ask,done){app.querySelectorAll(sel).forEach(function(b){b.onclick=async function(){var t=transfers.find(function(x){return x.id===b.getAttribute(sel.slice(1,-1))});if(!t)return;
+    if(ask&&!confirm(L(ask)))return;b.disabled=true;try{await api('POST','/transfers/'+t.id+'/request/'+ans,{});await load();form=null;toast(L(done));render()}catch(e){b.disabled=false;alert(L(e.message));await load().catch(function(){});render()}}})};
+  go('[data-rqa]','agree',null,'✓ Agreed · both cashbooks updated');go('[data-rqr]','refuse','Refuse this request?','Refused · nothing changed');go('[data-rqw]','withdraw',null,'Request withdrawn');
+}
 function trHtml(){
   if(!trf)trf={to:'',amount:'',date:today(),notes:''};
-  var w=trWaiting(),sent=transfers.filter(function(t){return t.from===me}),got=transfers.filter(function(t){return t.to===me&&t.status!=='pending'});
+  var w=trWaiting().filter(function(t){return t.status==='pending'}),rq=trWaiting().filter(function(t){return t.req}),sent=transfers.filter(function(t){return t.from===me}),got=transfers.filter(function(t){return t.to===me&&t.status!=='pending'});
   var h='<div class="uhd"><div><h2 style="margin:0">⇄ Transfer</h2><small class="mut">Send money to another user · they must accept</small></div></div>';
   if(w.length){h+='<h3 class="trh">Waiting for you</h3>';w.forEach(function(t){
     h+='<div class="inc"><span class="tst pd">⏳ Pending</span><div class="who"><b>'+esc(t.from)+'</b> sent you</div><div class="big">'+fmt(t.amount)+'</div><div class="mut">'+(t.notes?'“'+esc(t.notes)+'” · ':'')+dlabel(t.date).replace(/^\w+, /,'')+'</div>'+
       '<div class="bbtn"><button class="lt rej" data-trr="'+esc(t.id)+'">✕ Reject</button><button class="acc" data-tra="'+esc(t.id)+'">✓ Accept</button></div><p class="mut sm2">Accept only if you actually got the money. It will be added to your cashbook as Cash In.</p></div>'})}
+  if(rq.length){h+='<h3 class="trh">Requests for your OK</h3>';rq.forEach(function(t){h+='<div class="inc"><div class="who">⇄ '+(t.from===me?'To ':'From ')+esc(t.from===me?t.to:t.from)+' · '+dshort(t.date)+'</div>'+trReqBox(t)+'</div>'})}
   h+='<div class="card trf"><h3 class="trh" style="margin-top:0">Send money</h3>';
   if(!peers.length)h+='<p class="mut" style="margin:0">There are no other users to send to yet.</p>';
   else h+='<label for="tr_to">Send to</label><select id="tr_to"><option value="">Choose user…</option>'+peers.map(function(p){return '<option'+(trf.to===p?' selected':'')+'>'+esc(p)+'</option>'}).join('')+'</select>'+
@@ -819,6 +856,7 @@ function trHtml(){
   return h;
 }
 function bindTr(){
+  bindTrReq();
   var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};
   if(G('tr_to'))['tr_to','tr_amt','tr_date','tr_note'].forEach(function(i){G(i).oninput=G(i).onchange=function(){trf={to:G('tr_to').value,amount:G('tr_amt').value,date:G('tr_date').value,notes:G('tr_note').value}}});
   if(G('tr_go'))G('tr_go').onclick=async function(){var f=trf,a=parseFloat(f.amount);
@@ -902,7 +940,7 @@ async function backupXls(admin){
   var wb=new ExcelJS.Workbook(),now=new Date(),list=(admin?txs:txs.filter(function(t){return t.user===me})).slice().sort(cmp),pl=admin?parties:myParties();
   var head=function(ws,cols){ws.columns=cols.map(function(c){return {header:c[0],key:c[1],width:c[2]}});var r=ws.getRow(1);r.font={bold:true,color:{argb:'FFFFFFFF'}};r.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0F766E'}};r.height=20;ws.views=[{state:'frozen',ySplit:1}]};
   var money='#,##0.00;-#,##0.00';
-  var ti=0,to=0;list.forEach(function(t){t.type==='in'?ti+=t.amount:to+=t.amount});
+  var ti=0,to=0;list.forEach(function(t){if(admin&&t.transfer)return;t.type==='in'?ti=r2(ti+t.amount):to=r2(to+t.amount)});
   var sm=wb.addWorksheet('Summary');sm.columns=[{width:26},{width:40}];
   [['Business',biz.name||'Cashflow'],['Address',(biz.address||'').split(/\s*\n\s*/).join(', ')],['Backup taken',now.toLocaleString('en-IN')],['Taken by',me+(admin?' (admin)':'')],[''],
    ['Entries',list.length],['Total cash in',ti],['Total cash out',to],['Balance',ti-to],['Parties',pl.length]].concat(admin?[['Users',Object.keys(users).length]]:[])
@@ -910,16 +948,16 @@ async function backupXls(admin){
   sm.getRow(1).getCell(2).font={bold:true,size:14};
   var es=wb.addWorksheet('Entries');
   head(es,[['Date','date',12],['Time','time',10],['User','user',12],['Type','type',10],['Cash In','in',13],['Cash Out','out',13],['Balance','bal',14],['Notes','notes',28],['Description','desc',22],['Party','party',20],['Edited','edited',8],['Photo','photo',8],['Added at','added',20],['Entry ID','id',38]]);
-  var run=0;list.forEach(function(t){run+=t.type==='in'?t.amount:-t.amount;
+  var run=0;list.forEach(function(t){run=r2(run+(t.type==='in'?t.amount:-t.amount));
     var r=es.addRow({date:new Date(t.date+'T00:00:00Z'),time:tm(t)?t12(tm(t)):'',user:t.user,type:t.type==='in'?'Cash In':'Cash Out',in:t.type==='in'?t.amount:null,out:t.type==='out'?t.amount:null,bal:run,notes:nt(t),desc:t.desc||'',party:t.party?pName(t.party):'',edited:t.edited?'Yes':'',photo:t.photo?'Yes':'',added:t.ts?new Date(t.ts):null,id:t.id});
     r.getCell('date').numFmt='dd mmm yyyy';r.getCell('added').numFmt='dd mmm yyyy hh:mm';['in','out','bal'].forEach(function(k){r.getCell(k).numFmt=money});
     r.getCell('in').font={color:{argb:'FF047857'}};r.getCell('out').font={color:{argb:'FFB91C1C'}}});
   var ps=wb.addWorksheet('Parties');
   head(ps,[['Name','name',24],['Type','kind',12],['Phone','phone',16]].concat(admin?[['Added by','owner',14]]:[]).concat([['You gave','gave',14],['You got','got',14],['Balance','bal',14],['Status','st',12],['Entries','n',9]]));
-  pl.forEach(function(p){var g=0,o=0,n=0;partyTx(p.id).forEach(function(t){n++;t.type==='out'?g+=t.amount:o+=t.amount});var b=g-o;
+  pl.forEach(function(p){var g=0,o=0,n=0;partyTx(p.id).forEach(function(t){n++;t.type==='out'?g=r2(g+t.amount):o=r2(o+t.amount)});var b=g-o;
     var r=ps.addRow({name:p.name,kind:PK[p.kind],phone:p.phone,owner:p.owner,gave:g,got:o,bal:Math.abs(b),st:b>0?'Will get':b<0?'Will give':'Settled',n:n});['gave','got','bal'].forEach(function(k){r.getCell(k).numFmt=money})});
   if(admin){var us=wb.addWorksheet('Users');head(us,[['Username','u',16],['Role','r',10],['Entries','n',9],['Cash In','i',14],['Cash Out','o',14],['Balance','b',14],['Parties','p',9]]);
-    Object.keys(users).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i+=t.amount:o+=t.amount}});
+    Object.keys(users).sort().forEach(function(k){var i=0,o=0,n=0;txs.forEach(function(t){if(t.user===k){n++;t.type==='in'?i=r2(i+t.amount):o=r2(o+t.amount)}});
       var r=us.addRow({u:k,r:users[k].role==='admin'?'Admin':'User',n:n,i:i,o:o,b:i-o,p:parties.filter(function(p){return p.owner===k}).length});['i','o','b'].forEach(function(c){r.getCell(c).numFmt=money})})}
   var buf=await wb.xlsx.writeBuffer(),nm=((biz.name||'Cashflow').replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()||'Cashflow')+' backup '+ymd(now)+(admin?'':' '+me)+'.xlsx';
   saveFile(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),nm);
@@ -978,10 +1016,11 @@ function exRange(k){var td=today(),d=new Date();
   return [txs.reduce(function(m,t){return t.date&&t.date<m?t.date:m},td),td]}
 function exData(admin){
   var u=admin?exu:me,from=exf,to=ext;
-  var base=txs.filter(function(t){return admin?(u==='all'||t.user===u):t.user===me}).slice().sort(cmp),open=0,rows=[],ti=0,to2=0;
-  base.forEach(function(t){var v=t.type==='in'?t.amount:-t.amount;if(t.date<from){open+=v;return}if(t.date>to)return;
-    t.type==='in'?ti+=t.amount:to2+=t.amount;rows.push({t:t,bal:0})});
-  var b=open;rows.forEach(function(r){b+=r.t.type==='in'?r.t.amount:-r.t.amount;r.bal=b});
+  // All users: a transfer only moves money between users, so it is left out (same as the app's totals).
+  var base=txs.filter(function(t){return admin?(u==='all'&&!t.transfer||t.user===u):t.user===me}).slice().sort(cmp),open=0,rows=[],ti=0,to2=0;
+  base.forEach(function(t){var v=t.type==='in'?t.amount:-t.amount;if(t.date<from){open=r2(open+v);return}if(t.date>to)return;
+    t.type==='in'?ti=r2(ti+t.amount):to2=r2(to2+t.amount);rows.push({t:t,bal:0})});
+  var b=open;rows.forEach(function(r){b=r2(b+(r.t.type==='in'?r.t.amount:-r.t.amount));r.bal=b});
   return {rows:rows,open:open,i:ti,o:to2,close:b,user:admin?(u==='all'?'All users':u):me,all:admin&&u==='all'};
 }
 function exportHtml(admin){
@@ -1069,7 +1108,7 @@ var PK={customer:'Customer',supplier:'Supplier',staff:'Staff',other:'Other'};
 // A party's balance comes from its owner's cash entries linked to it.
 function myParties(){return parties.filter(function(p){return p.owner===me})}
 function partyTx(id){var p=parties.find(function(x){return x.id===id});return p?txs.filter(function(t){return t.party===id&&t.user===p.owner}):[]}
-function pBal(id){return partyTx(id).reduce(function(s,t){return s+(t.type==='out'?t.amount:-t.amount)},0)}
+function pBal(id){return partyTx(id).reduce(function(s,t){return r2(s+(t.type==='out'?t.amount:-t.amount))},0)}
 function pName(id){var p=parties.find(function(x){return x.id===id});return p?p.name:''}
 function balLabel(b){return b>0?'Will get':b<0?'Will give':'Settled'}
 // Payment reminder state: only counts while the party still owes money. d = days past due (negative = days left).
@@ -1101,7 +1140,7 @@ function partiesHtml(list,mode){
 }
 function partyHtml(){
   var p=parties.find(function(x){return x.id===partyId}),ro=p.owner!==me,b=pBal(p.id),list=partyTx(p.id).slice().sort(cmp),run=0,rows=[];
-  list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;rows.push({t:t,bal:run})});rows.reverse();
+  list.forEach(function(t){run=r2(run+(t.type==='out'?t.amount:-t.amount));rows.push({t:t,bal:run})});rows.reverse();
   var you=ro?esc(p.owner):'you',You=ro?esc(p.owner):'You';
   var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone):'')+(ro?(p.phone?' · ':'')+'👤 '+esc(p.owner)+'\'s party · view only':'')+'</small>'+(b>0&&p.due?'<small class="mut">pays by '+dshort(p.due)+' '+p.due.slice(0,4)+'</small>':'')+'</span>'+(ro?'':'<button class="ib" id="p_edit" aria-label="Edit party">✎</button>')+'</div>';
   var u=pDue(p,b);
@@ -1142,7 +1181,7 @@ var stmt=null;
 async function partyPdf(p){
   await loadLibs('pdf');
   var J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4'}),W=210,M=14,y=M,x=M,list=partyTx(p.id).slice().sort(cmp),run=0,g=0,o=0,rows=[];
-  list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;t.type==='out'?g+=t.amount:o+=t.amount;rows.push({t:t,b:run})});
+  list.forEach(function(t){run=r2(run+(t.type==='out'?t.amount:-t.amount));t.type==='out'?g=r2(g+t.amount):o=r2(o+t.amount);rows.push({t:t,b:run})});
   if(bizLogo){var sz=await imgSize(bizLogo),hh=18,ww=Math.min(40,hh*sz[0]/sz[1]);hh=ww*sz[1]/sz[0];doc.addImage(bizLogo,bizLogo.indexOf('image/png')>0?'PNG':'JPEG',M,y,ww,hh);x=M+ww+5}
   doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(biz.name||'Cashflow',x,y+6);
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);if(biz.address)doc.text(doc.splitTextToSize(biz.address,W-M-x-62),x,y+11);
@@ -1229,6 +1268,10 @@ function actTextHi(a){
     case 'tr_accept':return who+' '+(a.owner===me?'आपका':'<b>'+esc(a.owner)+'</b> का')+amt+' का ट्रांसफ़र स्वीकार किया';
     case 'tr_reject':return who+' '+(a.owner===me?'आपका':'<b>'+esc(a.owner)+'</b> का')+amt+' का ट्रांसफ़र अस्वीकार किया';
     case 'tr_cancel':return who+' '+(a.owner===me?'आपको':'<b>'+esc(a.owner)+'</b> को')+amt+' का ट्रांसफ़र रद्द किया';
+    case 'tr_req':return who+' ट्रांसफ़र '+(a.type==='edit'?fmt(a.prev)+' → '+fmt(a.amount)+' बदलने':amt+' हटाने')+' को कहा'+(a.owner===me?' · आपकी मंज़ूरी चाहिए':' (<b>'+esc(a.owner)+'</b> के साथ)');
+    case 'tr_req_agree':return who+' ट्रांसफ़र '+(a.type==='edit'?amt+' करने':amt+' हटाने')+' की मंज़ूरी दी';
+    case 'tr_req_refuse':return who+' ट्रांसफ़र '+(a.type==='edit'?amt+' करने':amt+' हटाने')+' से मना किया';
+    case 'tr_req_withdraw':return who+' ट्रांसफ़र '+(a.type==='edit'?'बदलने':amt+' हटाने')+' का अनुरोध वापस लिया';
   }
   return who+' बदलाव किया';
 }
@@ -1244,7 +1287,7 @@ function partyNote(f){
 // Users tab (admin): every cashbook with its balance; tapping one opens it in Entries with a back button.
 function booksHtml(){
   var names={},tot=0;Object.keys(users).forEach(function(k){names[k]=1});txs.forEach(function(t){names[t.user]=1});
-  var rows=Object.keys(names).map(function(k){var b=0,n=0,last='';txs.forEach(function(t){if(t.user===k){n++;b+=t.type==='in'?t.amount:-t.amount;if(t.date>last)last=t.date}});tot+=b;return {k:k,b:b,n:n,last:last}})
+  var rows=Object.keys(names).map(function(k){var b=0,n=0,last='';txs.forEach(function(t){if(t.user===k){n++;b=r2(b+(t.type==='in'?t.amount:-t.amount));if(t.date>last)last=t.date}});tot+=b;return {k:k,b:b,n:n,last:last}})
     .sort(function(a,b){return (users[b.k]?1:0)-(users[a.k]?1:0)||a.k.localeCompare(b.k)});
   var h='<div class="uhd"><div><h2 style="margin:0">Cashbooks</h2><small class="mut">'+rows.length+' users · tap one to open</small></div><div style="text-align:right"><small class="mut">Total balance</small><div><b>'+sgnb(tot)+'</b></div></div></div><div class="card ul">';
   rows.forEach(function(r){var pc=parties.filter(function(p){return p.owner===r.k}).length;
@@ -1258,7 +1301,7 @@ function booksHtml(){
 function usersHtml(){
   var h='<div class="uhd"><div><h2 style="margin:0">Users</h2><small class="mut">'+Object.keys(users).length+' logins · all-time balance</small></div><button class="p" id="u_add">+ Add user</button></div><div class="card ul">';
   Object.keys(users).sort(function(a,b){return (users[b].role==='admin')-(users[a].role==='admin')||a.localeCompare(b)}).forEach(function(k){
-    var u=users[k],bal=0;txs.forEach(function(t){if(t.user===k)bal+=t.type==='in'?t.amount:-t.amount});
+    var u=users[k],bal=0;txs.forEach(function(t){if(t.user===k)bal=r2(bal+(t.type==='in'?t.amount:-t.amount))});
     h+='<div class="ur"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><div class="un"><b>'+esc(k)+'</b><small class="mut">'+(u.role==='admin'?'Admin (you)':'User')+'</small></div>'+
       '<b class="ub'+(bal<0?' neg':'')+'">'+(bal<0?'−':'')+fmt(Math.abs(bal))+'</b>'+
       '<button class="ib" data-rp="'+esc(k)+'" aria-label="Change password for '+esc(k)+'" title="Change password">🔑</button>'+
