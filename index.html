@@ -177,6 +177,16 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .pt small{display:block;color:var(--mut);font-size:12px}.pt b{font-size:20px}
 .pr .r{text-align:right;flex:none}.pr .r small{display:block;font-size:11px;color:var(--mut)}.pr .r b{font-size:15px}
 .tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--mut);margin-left:6px;font-weight:500;vertical-align:1px}
+/* Payment reminders: overdue (red) and due soon (amber) */
+.dtag{font-size:11px;padding:2px 7px;border-radius:6px;margin-left:6px;font-weight:600;white-space:nowrap;vertical-align:1px}.dtag.od{background:var(--out);color:#fff}.dtag.sn{background:rgba(245,158,11,.2);color:#b45309}
+.pr.od{background:var(--outb)}.pr.od .r b{color:var(--out)!important}
+.ovd{background:var(--outb);border-left:4px solid var(--out);border-radius:10px;padding:10px 12px;margin-bottom:12px}.ovd>b{color:var(--out)}
+.ovd .rw{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0 2px;border-top:1px dashed rgba(185,28,28,.3);margin-top:8px;font-size:14px}.ovd .rw small{display:block}
+a.wa{background:#16a34a;color:#fff;border-radius:16px;padding:5px 12px;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap}
+.obn{border-radius:12px;padding:12px;margin-bottom:12px;display:flex;gap:10px;align-items:center;background:var(--out);color:#fff}.obn.sn{background:rgba(245,158,11,.2);color:var(--tx)}
+.obn>div{flex:1}.obn small{display:block;opacity:.9}.obn a{background:#fff;color:var(--out);font-weight:700;border-radius:8px;padding:8px 10px;white-space:nowrap;text-decoration:none;font-size:14px}.obn.sn a{background:#16a34a;color:#fff}
+.dlab{font-size:13px;color:var(--mut);display:block;margin-bottom:4px}.chips2{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 8px}.chips2 button{padding:4px 11px;font-size:13px;border-radius:14px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .dtag.sn{color:#fbbf24}}:root[data-theme="dark"] .dtag.sn{color:#fbbf24}
 .pbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.pbar .un b{font-size:16px}
 .pbal{border-radius:16px;padding:16px;margin-bottom:12px;background:var(--card);border:1px solid var(--bd)}.pbal.g{background:var(--inb);border-color:transparent}.pbal.b{background:var(--outb);border-color:transparent}
 .pbal small{color:var(--mut)}.pbal .hv{font-size:34px}.pbal.g .hv{color:var(--in)}.pbal.b .hv{color:var(--out)}
@@ -340,6 +350,8 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'due today':'आज देय','Payment due today':'भुगतान आज देय है','💬 Remind':'💬 याद दिलाएं','💬 Send reminder':'💬 रिमाइंडर भेजें','📅 Payment due date (optional)':'📅 भुगतान की तारीख (वैकल्पिक)','Clear':'हटाएं',
+'After this date the party turns red as Overdue if they still owe you.':'इस तारीख के बाद, अगर पैसा बाकी है तो पार्टी लाल में "बकाया" दिखेगी।',
 'Cashflow':'कैशफ्लो','Cashflow setup':'कैशफ्लो सेटअप','Create the admin account. You will use it to add other users.':'एडमिन खाता बनाएं। इससे आप दूसरे यूज़र जोड़ेंगे।',
 'Admin username':'एडमिन यूज़रनेम','Password (min 6 chars)':'पासवर्ड (कम से कम 6 अक्षर)','Confirm password':'पासवर्ड दोबारा लिखें','Create admin':'एडमिन बनाएं',
 'Sign in to continue':'जारी रखने के लिए साइन इन करें','Username':'यूज़रनेम','Password':'पासवर्ड','Sign in':'साइन इन','Sign out':'साइन आउट','Install app':'ऐप इंस्टॉल करें',
@@ -387,6 +399,9 @@ var HI={
 'Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
+[/^(\d+)d late$/,'$1 दिन लेट'],[/^due in (\d+)d$/,'$1 दिन में देय'],[/^due (.+)$/,'देय $1'],[/^(.* · )due (.+)$/,'$1देय $2'],[/^(\d+) overdue · (.+)$/,'$1 बकाया · $2'],
+[/^was due (.+) · (\d+) days? late$/,'$1 को देय था · $2 दिन लेट'],[/^⚠ Overdue since (.+)$/,'⚠ $1 से बकाया'],[/^Payment due on (.+)$/,'भुगतान की तारीख $1'],
+[/^(\d+) days? late · (.+) pending$/,'$1 दिन लेट · $2 बाकी'],[/^in (\d+) days? · (.+) pending$/,'$1 दिन में · $2 बाकी'],[/^(.+) pending$/,'$1 बाकी'],[/^pays by (.+)$/,'भुगतान की तारीख $1'],[/^\+(\d+) days$/,'+$1 दिन'],
 [/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^Bal (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
 [/^(\d+) days? with entries$/,'$1 दिन जिनमें एंट्री है'],[/^Show all (\d+)$/,'सभी $1 दिखाएं'],[/^Latest (\d+) entries added$/,'हाल की $1 एंट्री'],
 [/^(\d+) logins · all-time balance$/,'$1 लॉगिन · शुरू से बैलेंस'],[/^(\d+) users · tap one to open$/,'$1 यूज़र · खोलने के लिए टैप करें'],
@@ -953,6 +968,9 @@ function partyTx(id){var p=parties.find(function(x){return x.id===id});return p?
 function pBal(id){return partyTx(id).reduce(function(s,t){return s+(t.type==='out'?t.amount:-t.amount)},0)}
 function pName(id){var p=parties.find(function(x){return x.id===id});return p?p.name:''}
 function balLabel(b){return b>0?'Will get':b<0?'Will give':'Settled'}
+// Payment reminder state: only counts while the party still owes money. d = days past due (negative = days left).
+function pDue(p,b){if(!p.due||b<=0)return null;var d=Math.round((Date.parse(today())-Date.parse(p.due))/864e5);return {d:d,st:d>0?'od':d>=-3?'sn':''}}
+function dueTag(u){return !u||!u.st?'':u.st==='od'?'<span class="dtag od">'+u.d+'d late</span>':'<span class="dtag sn">'+(u.d===0?'due today':'due in '+(-u.d)+'d')+'</span>'}
 function peopleHtml(admin){
   if(partyId&&parties.some(function(p){return p.id===partyId}))return partyHtml();
   partyId=null;
@@ -964,13 +982,15 @@ function peopleHtml(admin){
 }
 // mode: 'mine' (your own, editable), 'user' (one user's, admin view), 'all' (everyone's, admin view)
 function partiesHtml(list,mode){
-  var get=0,give=0,ng=0,nv=0,rows=list.map(function(p){var b=pBal(p.id),last='';partyTx(p.id).forEach(function(t){if(t.date>last)last=t.date});if(b>0){get+=b;ng++}else if(b<0){give-=b;nv++}return {p:p,b:b,last:last}});
+  var get=0,give=0,ng=0,nv=0,rows=list.map(function(p){var b=pBal(p.id),last='';partyTx(p.id).forEach(function(t){if(t.date>last)last=t.date});if(b>0){get+=b;ng++}else if(b<0){give-=b;nv++}return {p:p,b:b,last:last,u:pDue(p,b)}});
   var who=mode==='mine'?'You':mode==='user'?esc(puser):'Everyone';
   var h='<div class="pt"><div><small>'+who+' will get</small><b class="in">'+fmt(get)+'</b><small>from '+ng+' part'+(ng===1?'y':'ies')+'</small></div><div><small>'+who+' will give</small><b class="out">'+fmt(give)+'</b><small>to '+nv+' part'+(nv===1?'y':'ies')+'</small></div></div>';
+  var od=rows.filter(function(r){return r.u&&r.u.st==='od'}).sort(function(a,b){return b.u.d-a.u.d});
+  if(od.length)h+='<div class="ovd">⚠ <b>'+od.length+' overdue · '+fmt(od.reduce(function(a,r){return a+r.b},0))+'</b>'+od.map(function(r){return '<div class="rw"><span><b>'+esc(r.p.name)+'</b> · '+fmt(r.b)+(mode==='all'?' · 👤 '+esc(r.p.owner):'')+'<small class="mut">was due '+dshort(r.p.due)+' · '+r.u.d+' day'+(r.u.d===1?'':'s')+' late</small></span><a class="wa" target="_blank" rel="noopener" href="'+waLink(r.p,r.b)+'">💬 Remind</a></div>'}).join('')+'</div>';
   if(list.length>4)h+='<input id="p_q" placeholder="🔍  Search party'+(mode==='all'?', phone or user':' name or phone')+'" autocomplete="off">';
   if(!rows.length)h+='<div class="card dempty"><b>No parties yet</b><p class="mut">'+(mode==='mine'?'Add customers, suppliers or staff to see how much each one owes you or you owe them. Only you can see your parties.':mode==='user'?esc(puser)+' has not added any parties.':'No one has added any parties yet.')+'</p></div>';
   else{h+='<div class="card ul">';rows.forEach(function(r){var p=r.p;
-    h+='<button class="urow pr" data-pid="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone+' '+p.owner).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(mode==='all'?'👤 '+esc(p.owner)+' · ':'')+(p.phone?esc(p.phone)+' · ':'')+(r.last?'last '+dshort(r.last):'no entries yet')+'</small></span><span class="r"><small>'+balLabel(r.b)+'</small><b class="'+(r.b>0?'in':r.b<0?'out':'')+'">'+fmt(Math.abs(r.b))+'</b></span></button>'});
+    h+='<button class="urow pr'+(r.u&&r.u.st==='od'?' od':'')+'" data-pid="'+esc(p.id)+'" data-q="'+esc((p.name+' '+p.phone+' '+p.owner).toLowerCase())+'"><span class="av sm">'+esc(p.name.charAt(0).toUpperCase())+'</span><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span>'+dueTag(r.u)+'</b><small class="mut">'+(mode==='all'?'👤 '+esc(p.owner)+' · ':'')+(p.phone?esc(p.phone)+' · ':'')+(r.u?'due '+dshort(p.due):r.last?'last '+dshort(r.last):'no entries yet')+'</small></span><span class="r"><small>'+balLabel(r.b)+'</small><b class="'+(r.b>0?'in':r.b<0?'out':'')+'">'+fmt(Math.abs(r.b))+'</b></span></button>'});
     h+='</div>'}
   if(mode==='mine')h+='<button class="p" id="p_add" style="width:100%;margin-top:4px">+ Add party</button>';
   return h+partySheet();
@@ -979,7 +999,9 @@ function partyHtml(){
   var p=parties.find(function(x){return x.id===partyId}),ro=p.owner!==me,b=pBal(p.id),list=partyTx(p.id).slice().sort(cmp),run=0,rows=[];
   list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;rows.push({t:t,bal:run})});rows.reverse();
   var you=ro?esc(p.owner):'you',You=ro?esc(p.owner):'You';
-  var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone):'')+(ro?(p.phone?' · ':'')+'👤 '+esc(p.owner)+'\'s party · view only':'')+'</small></span>'+(ro?'':'<button class="ib" id="p_edit" aria-label="Edit party">✎</button>')+'</div>';
+  var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone):'')+(ro?(p.phone?' · ':'')+'👤 '+esc(p.owner)+'\'s party · view only':'')+'</small>'+(b>0&&p.due?'<small class="mut">pays by '+dshort(p.due)+' '+p.due.slice(0,4)+'</small>':'')+'</span>'+(ro?'':'<button class="ib" id="p_edit" aria-label="Edit party">✎</button>')+'</div>';
+  var u=pDue(p,b);
+  if(u&&u.st)h+='<div class="obn '+u.st+'"><div><b>'+(u.st==='od'?'⚠ Overdue since '+dshort(p.due):u.d===0?'Payment due today':'Payment due on '+dshort(p.due))+'</b><small>'+(u.st==='od'?u.d+' day'+(u.d===1?'':'s')+' late · '+fmt(b)+' pending':'in '+(-u.d)+' day'+(u.d===-1?'':'s')+' · '+fmt(b)+' pending').replace('in 0 days · ','')+'</small></div><a target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 Send reminder</a></div>';
   h+='<div class="pbal '+(b>0?'g':b<0?'b':'')+'"><small>'+(b>0?esc(p.name)+' owes '+you:b<0?You+' owe'+(ro?'s ':' ')+esc(p.name):'All settled with '+esc(p.name))+'</small><div class="hv">'+fmt(Math.abs(b))+'</div><div class="acts">'+
     (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<button id="p_stmt">📄 Statement</button><a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(!ro&&!list.length?'<button id="p_del">🗑 Delete</button>':'')+'</div></div>';
   h+='<div class="lh"><span>Entry</span><span class="out">'+You+' gave</span><span class="in">'+You+' got</span></div>';
@@ -991,7 +1013,9 @@ function partyHtml(){
 }
 function waText(p,b){
   var bn=biz.name||'us',d=dlabel(today()).replace(/^\w+, /,''),msg='Hello '+p.name+',\n'+
-    (b>0?'Your pending balance with *'+bn+'* is *₹'+fn(b)+'* as of '+d+'.\nPlease pay at your earliest. Thank you!':b<0?'*'+bn+'* has ₹'+fn(-b)+' payable to you as of '+d+'.\nThank you!':'Your account with *'+bn+'* is fully settled as of '+d+'. Thank you!')+(biz.name?'\n— '+biz.name:'');
+    (b>0&&p.due&&p.due<today()?'This is a reminder that your payment of *₹'+fn(b)+'* to *'+bn+'* was due on *'+dlabel(p.due).replace(/^\w+, /,'')+'*.\nPlease pay at the earliest. Thank you!':
+     b>0&&p.due?'Your pending balance with *'+bn+'* is *₹'+fn(b)+'*, due on *'+dlabel(p.due).replace(/^\w+, /,'')+'*.\nThank you!':
+     b>0?'Your pending balance with *'+bn+'* is *₹'+fn(b)+'* as of '+d+'.\nPlease pay at your earliest. Thank you!':b<0?'*'+bn+'* has ₹'+fn(-b)+' payable to you as of '+d+'.\nThank you!':'Your account with *'+bn+'* is fully settled as of '+d+'. Thank you!')+(biz.name?'\n— '+biz.name:'');
   return msg;
 }
 function waLink(p,b){
@@ -1003,6 +1027,7 @@ function partySheet(){
   return '<div class="ov" data-psx></div><div class="sheet" role="dialog" aria-label="'+(f.id?'Edit party':'Add party')+'"><h2>'+(f.id?'Edit party':'Add party')+'</h2>'+
     '<input id="pp_n" placeholder="Name" value="'+esc(f.name)+'" autocomplete="off"><input id="pp_p" type="tel" inputmode="tel" placeholder="Phone (optional, for WhatsApp)" value="'+esc(f.phone)+'">'+
     '<select id="pp_k">'+Object.keys(PK).map(function(k){return '<option value="'+k+'"'+(f.kind===k?' selected':'')+'>'+PK[k]+'</option>'}).join('')+'</select>'+
+    '<label class="dlab" for="pp_d">📅 Payment due date (optional)</label><input id="pp_d" type="date" value="'+esc(f.due||'')+'"><div class="chips2">'+[7,15,30].map(function(n){return '<button type="button" class="sm" data-dd="'+n+'">+'+n+' days</button>'}).join('')+(f.due?'<button type="button" class="sm" data-dd="0">Clear</button>':'')+'</div><p class="note">After this date the party turns red as Overdue if they still owe you.</p>'+
     '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" data-psx>Cancel</button><button id="pp_save">'+(f.id?'Save':'Add party')+'</button></div></div>';
 }
 // ---- Party statement PDF ----
@@ -1064,11 +1089,12 @@ function bindPeople(){
   $('[data-pu]').forEach(function(b){b.onclick=function(){puser=b.dataset.pu;partyId=null;render();window.scrollTo(0,0)}});
   $('[data-pub]').forEach(function(b){b.onclick=function(){puser=null;render()}});
   if(G('p_q'))G('p_q').oninput=function(e){var q=e.target.value.trim().toLowerCase();$('[data-pid]').forEach(function(r){r.style.display=!q||r.dataset.q.indexOf(q)>=0?'':'none'})};
-  if(G('p_add'))G('p_add').onclick=function(){psheet={name:'',phone:'',kind:'customer'};err='';render();G('pp_n').focus()};
-  if(G('p_edit'))G('p_edit').onclick=function(){var p=parties.find(function(x){return x.id===partyId});psheet={id:p.id,name:p.name,phone:p.phone,kind:p.kind};err='';render()};
+  if(G('p_add'))G('p_add').onclick=function(){psheet={name:'',phone:'',kind:'customer',due:''};err='';render();G('pp_n').focus()};
+  if(G('p_edit'))G('p_edit').onclick=function(){var p=parties.find(function(x){return x.id===partyId});psheet={id:p.id,name:p.name,phone:p.phone,kind:p.kind,due:p.due||''};err='';render()};
   if(G('p_del'))G('p_del').onclick=async function(){var p=parties.find(function(x){return x.id===partyId});if(!confirm(L('Delete party "'+p.name+'"?')))return;try{await api('DELETE','/parties/'+p.id);partyId=null;await load();render()}catch(e){alert(e.message)}};
   $('[data-psx]').forEach(function(b){b.onclick=function(){psheet=null;err='';render()}});
-  if(G('pp_n')){['pp_n','pp_p','pp_k'].forEach(function(i){G(i).oninput=G(i).onchange=function(){psheet.name=G('pp_n').value;psheet.phone=G('pp_p').value;psheet.kind=G('pp_k').value}});
+  if(G('pp_n')){['pp_n','pp_p','pp_k','pp_d'].forEach(function(i){G(i).oninput=G(i).onchange=function(){psheet.name=G('pp_n').value;psheet.phone=G('pp_p').value;psheet.kind=G('pp_k').value;psheet.due=G('pp_d').value}});
+    $('[data-dd]').forEach(function(b){b.onclick=function(){var n=+b.dataset.dd,d=new Date();d.setDate(d.getDate()+n);psheet.due=n?ymd(d):'';render()}});
     G('pp_p').onkeydown=function(e){if(e.key==='Enter')G('pp_save').click()}}
   if(G('pp_save'))G('pp_save').onclick=async function(){var f=psheet;if(!f.name.trim())return seterr('Enter a name');
     try{var r=f.id?await api('PUT','/parties/'+f.id,f):await api('POST','/parties',f);psheet=null;err='';partyId=r.id;await load();render();window.scrollTo(0,0)}catch(e){seterr(e.message)}};
