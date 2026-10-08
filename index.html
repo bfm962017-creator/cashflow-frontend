@@ -196,6 +196,18 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .lopt>span:first-child{flex:1}.lopt b,.lopt small{display:block}.lopt b{font-size:17px}.lopt.on b{color:var(--pri)}.lck{color:var(--pri);font-size:20px;font-weight:700;width:24px;text-align:center}
 .spin{width:34px;height:34px;margin:4px auto 14px;border-radius:50%;border:3px solid var(--bd);border-top-color:var(--pri);animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spin{animation:none}}
+.edt{display:inline-block;font-size:11px;font-weight:600;color:#b45309;background:#fef3c7;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .edt{background:#3a2a0a;color:#fbbf24}}
+.hist h3{font-size:15px;margin:0 0 4px}.hist h3 small{font-weight:400}
+.tl{position:relative;padding-left:22px;margin-top:10px}.tl:before{content:"";position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:var(--bd)}
+.ev{position:relative;padding:0 0 16px}.ev:last-child{padding-bottom:0}
+.ev:before{content:"";position:absolute;left:-20px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--card);border:3px solid var(--pri)}
+.ev.add:before{border-color:var(--in)}.ev.delete:before{border-color:var(--out)}.ev.restore:before{border-color:#b45309}
+.ev .w{font-size:14px}.ev .tm2{font-size:12px;color:var(--mut);margin-top:1px}
+.chg{margin-top:6px;background:var(--bg);border-radius:8px;padding:8px 10px;font-size:13px}
+.chg div{display:grid;grid-template-columns:86px 1fr;gap:6px;padding:2px 0}.chg div>span{color:var(--mut)}.chg p{margin:0}
+.old{text-decoration:line-through;color:var(--out)}.new{color:var(--in);font-weight:700}
+.note2{font-size:12px;color:var(--mut);text-align:center;margin-top:10px}
 .lnk{border:0;background:none;padding:0;color:var(--pri);text-decoration:underline;font-size:inherit}
 .tile .tn b{display:inline;font-size:inherit;margin:0}
 .tile .tio .in{color:var(--in)}.tile .tio .out{color:var(--out)}
@@ -250,6 +262,7 @@ var MENU=[
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
+  {id:'deleted',icon:'🗑',label:'Deleted entries',admin:true},
   {id:'lang',icon:'🌐',label:'Language / भाषा'}
 ];
 var fmt=function(n){return '₹'+Number(n).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:2})};
@@ -352,7 +365,12 @@ var HI={
 'PNG or JPG. Square works best.':'PNG या JPG। चौकोर लोगो सबसे अच्छा है।','Business name':'बिज़नेस का नाम','Business address':'बिज़नेस का पता','e.g. Sharma Traders':'जैसे शर्मा ट्रेडर्स',
 'Shop no., street, city, PIN':'दुकान नं., गली, शहर, पिन','Save settings':'सेटिंग्स सेव करें','Saving…':'सेव हो रहा है…','Saved ✓':'सेव हो गया ✓','Discard unsaved settings?':'बिना सेव की सेटिंग्स छोड़ दें?',
 'Choose the app language for this phone.':'इस फ़ोन के लिए ऐप की भाषा चुनें।','PDF and Excel exports stay in English.':'PDF और Excel एक्सपोर्ट अंग्रेज़ी में ही रहेंगे।',
-'For':'यूज़र:','Tip: add customers and suppliers under':'सुझाव: ग्राहक और सप्लायर यहां जोड़ें:','to track what each one owes.':'ताकि पता रहे किससे कितना लेना है।','People → My parties':'लोग → मेरी पार्टियां','Tip: add your business name and logo in':'सुझाव: अपना बिज़नेस नाम और लोगो यहां जोड़ें:','Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
+'For':'यूज़र:','Tip: add customers and suppliers under':'सुझाव: ग्राहक और सप्लायर यहां जोड़ें:','to track what each one owes.':'ताकि पता रहे किससे कितना लेना है।','People → My parties':'लोग → मेरी पार्टियां','Tip: add your business name and logo in':'सुझाव: अपना बिज़नेस नाम और लोगो यहां जोड़ें:','✎ Edited':'✎ बदली गई','🕘 History':'🕘 इतिहास','Loading history…':'इतिहास लोड हो रहा है…','You':'आप','added this entry':'ने यह एंट्री जोड़ी','edited this entry':'ने यह एंट्री बदली','deleted this entry':'ने यह एंट्री हटाई','restored this entry':'ने यह एंट्री वापस लाई',
+'Type':'प्रकार','Amount':'रकम','Time':'समय','Description':'विवरण','Party':'पार्टी','(removed party)':'(हटाई गई पार्टी)','No changes recorded yet. Changes made from now on will show here.':'अभी कोई बदलाव दर्ज नहीं। अब से होने वाले बदलाव यहां दिखेंगे।',
+'Changes made before history was switched on are not shown.':'इतिहास शुरू होने से पहले के बदलाव नहीं दिखते।','History is saved automatically and can’t be edited.':'इतिहास अपने आप सेव होता है और बदला नहीं जा सकता।',
+'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
+'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
+'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
 [/^Balance (-?[\d,.]+)$/,'बैलेंस $1'],[/^Bal (-?[\d,.]+)$/,'बैलेंस $1'],[/^(.+) · (Customer|Supplier|Staff|Other)$/,function(m,a,b){return a+' · '+HI[b]}],[/^(.*)👤 (.+)'s party · view only$/,'$1👤 $2 की पार्टी · सिर्फ़ देखने के लिए'],[/^(\d+) entr(?:y|ies) · All users · (.+)$/,'$1 एंट्री · सभी यूज़र · $2'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],[/^(Will get|Will give|Settled) (-?[\d,.]+)$/,function(m,a,b){return HI[a]+' '+b}],[/^Net (.+)$/,'शुद्ध $1'],[/^(\d+) entr(?:y|ies)$/,'$1 एंट्री'],[/^· (\d+) entr(?:y|ies)$/,'· $1 एंट्री'],[/^(\d+) entr(?:y|ies) · last (.+)$/,'$1 एंट्री · आखिरी $2'],
@@ -363,7 +381,7 @@ var HIP=[
 [/^(.+) owes you$/,'$1 से आपको लेना है'],[/^You owe (.+)$/,'आपको $1 को देना है'],[/^All settled with (.+)$/,'$1 के साथ हिसाब बराबर'],
 [/^(.+) owes ([a-z0-9_.-]+)$/,'$1 से $2 को लेना है'],[/^([a-z0-9_.-]+) owes (.+)$/,'$1 को $2 को देना है'],[/^(.+) gave$/,'$1 ने दिया'],[/^(.+) got$/,'$1 को मिला'],
 [/^last (.+)$/,'आखिरी $1'],[/^(.*)no entries yet$/,'$1अभी कोई एंट्री नहीं'],[/^Delete party "(.+)"\?$/,'पार्टी "$1" हटाएं?'],[/^Delete user "(.+)"\? They can no longer sign in\. Their entries are kept\.$/,'यूज़र "$1" हटाएं? वह साइन इन नहीं कर पाएगा। उसकी एंट्री बनी रहेंगी।'],[/^(\d+)m ago$/,'$1 मिनट पहले'],[/^(\d+)h ago$/,'$1 घंटे पहले'],
-[/^Total balance · (.+)$/,'कुल बैलेंस · $1'],[/^(.+) · (Admin|User)$/,function(m,a,b){return a+' · '+HI[b]}],
+[/^· (\d+) changes?$/,'· $1 बदलाव'],[/^Deleted by (.+) · (.+)$/,function(m,a,b){return a+' ने हटाया · '+trDate(HI[b.split(' · ')[0]]?b.replace(/^(Today|Yesterday)/,function(x){return HI[x]}):b)}],[/^(.+)'s entry · (.+)$/,function(m,a,b){return a+' की एंट्री · '+trDate(b)}],[/^(Today|Yesterday) · (.+)$/,function(m,a,b){return HI[a]+' · '+trDate(b)}],[/^Total balance · (.+)$/,'कुल बैलेंस · $1'],[/^(.+) · (Admin|User)$/,function(m,a,b){return a+' · '+HI[b]}],
 [/^✓ (Saved|Updated) · Cash (In|Out) (.+)$/,function(m,a,b,c){return '✓ '+(a==='Saved'?'सेव हुआ':'अपडेट हुआ')+' · '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
 [/^Last saved: Cash (In|Out) (.+)$/,function(m,b,c){return 'आखिरी सेव: '+(b==='In'?'नकद आया':'नकद गया')+' '+c}],
 [/^(.+) added · (.+)$/,'$1 ने जोड़ा · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 से लेना है $2'],
@@ -427,7 +445,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'&&admin?deletedHtml():tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -455,6 +473,7 @@ function actText(a){
     case 'tx_add':return who+' added '+ty+amt+book;
     case 'tx_edit':return who+' edited a '+ty+' entry'+(a.prev!=null&&a.prev!==a.amount?' '+fmt(a.prev)+' → '+fmt(a.amount):amt)+book;
     case 'tx_delete':return who+' deleted '+ty+amt+book;
+    case 'tx_restore':return who+' restored '+ty+amt+book;
     case 'user_add':return a.owner===me?who+' created your account':who+' created user <b>'+esc(a.owner)+'</b>';
     case 'user_password':return a.owner===me?who+' reset your password':who+' reset <b>'+esc(a.owner)+'</b>\'s password';
     case 'user_delete':return who+' deleted user <b>'+esc(a.owner)+'</b>';
@@ -464,7 +483,7 @@ function actText(a){
 }
 function actIcon(a){
   if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
-  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],settings:['','⚙']}[a.action]||['','•'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙']}[a.action]||['','•'];
 }
 function notifHtml(){
   var an=menuAnim?' an':'';menuAnim=false;
@@ -490,7 +509,7 @@ function viewForm(){
   '<div class="row2"><div class="dt"><button data-dd="-1">‹</button><input id="f_date" type="date" value="'+esc(f.date)+'"><button data-dd="1">›</button></div><div class="dt"><input id="f_time" type="time" value="'+esc(f.time)+'"></div></div>'+
   '<label class="fl '+(isIn?'in':'out')+'">'+(isIn?'Cash In':'Cash Out')+' amount (₹)</label><input id="f_amt" type="number" inputmode="decimal" min="0" step="0.01" value="'+esc(f.amount)+'">'+
   partyPicker(f)+'<input id="f_notes" placeholder="Notes" value="'+esc(f.notes)+'"><input id="f_desc" placeholder="Description / Category" value="'+esc(f.desc)+'">'+
-  (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div></div>'+
+  (f.user&&f.user!==me?'<div class="mut" style="margin-bottom:8px">Entry for user: <b>'+esc(f.user)+'</b></div>':'')+'<div class="err" id="e">'+esc(err)+'</div></div>'+(f.id?'<div class="card hist" id="f_hist">'+histHtml(f.hist)+'</div>':'')+'</div>'+
   '<div class="fixb"><div class="bbtn"><button class="lt" id="sx">Save and exit</button><button id="sc">'+(f.id?'Update':'Save and continue')+'</button></div></div>';
   app.innerHTML=h;
   var G=function(i){return document.getElementById(i)};
@@ -502,6 +521,7 @@ function viewForm(){
   G('f_amt').addEventListener('input',function(e){form.amount=e.target.value;var n=G('f_pnote');if(n){n.innerHTML=partyNote(form);tr(n)}});
   G('sx').onclick=function(){save(true)};G('sc').onclick=function(){save(false)};
   if(!f.id&&!f.amount)G('f_amt').focus();
+  if(f.id&&f.hist===undefined)loadHist(f);
 }
 // Small confirmation pill at the top of the screen; lives outside #app so re-renders don't remove it.
 function toast(html){
@@ -632,11 +652,60 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
   h+='<div class="fixb"><div class="bbtn big"><button class="gi" data-new="in">+ Cash In</button><button class="go" data-new="out">− Cash Out</button></div></div>';
   return h;
+}
+
+// ---- Entry history & deleted entries ----
+// The server records every add / edit / delete / restore. The entry form shows that timeline;
+// the admin can list deletions from the last 30 days and restore them.
+var HF={kind:'Type',amount:'Amount',tx_date:'Date',tx_time:'Time',notes:'Notes',descr:'Description',party_id:'Party'},delList;
+function histVal(f,v){
+  if(v==null||v==='')return '—';
+  if(f==='kind')return v==='in'?'Cash In':'Cash Out';if(f==='amount')return fmt(v);if(f==='tx_date')return dshort(v)+' '+String(v).slice(0,4);
+  if(f==='tx_time')return t12(v);if(f==='party_id')return esc(pName(v)||'(removed party)');return esc(v);
+}
+function when(ts){var d=new Date(ts),k=ymd(d),td=today();return (k===td?'Today':k===addDays(td,-1)?'Yesterday':dlabel(k))+' · '+t12(hhmm(d))}
+function histHtml(list){
+  if(list==null)return '<h3>🕘 History</h3><p class="mut">Loading history…</p>';
+  var h='<h3>🕘 History'+(list.length?' <small class="mut">· '+list.length+' change'+(list.length===1?'':'s')+'</small>':'')+'</h3>';
+  if(!list.length)return h+'<p class="mut">No changes recorded yet. Changes made from now on will show here.</p>';
+  h+='<div class="tl">';
+  list.forEach(function(e){
+    var who='<b>'+(e.actor===me?'You':esc(e.actor))+'</b>',s=e.snapshot;
+    h+='<div class="ev '+e.action+'"><div class="w">'+who+' <span>'+{add:'added this entry',edit:'edited this entry',delete:'deleted this entry',restore:'restored this entry'}[e.action]+'</span></div><div class="tm2">'+when(e.ts)+'</div>';
+    if(e.action==='edit'&&e.changes)h+='<div class="chg">'+Object.keys(HF).filter(function(f){return e.changes[f]}).map(function(f){var c=e.changes[f];return '<div><span>'+HF[f]+'</span><p><span class="old">'+histVal(f,c[0])+'</span> → <span class="new">'+histVal(f,c[1])+'</span></p></div>'}).join('')+'</div>';
+    else if(s&&e.action==='add')h+='<div class="chg"><div><span>'+histVal('kind',s.kind)+'</span><p><b>'+fmt(s.amount)+'</b>'+(s.notes?' · '+esc(s.notes):'')+'</p></div></div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  if(!list.some(function(e){return e.action==='add'}))h+='<p class="note2">Changes made before history was switched on are not shown.</p>';
+  else h+='<p class="note2">History is saved automatically and can’t be edited.</p>';
+  return h;
+}
+async function loadHist(f){
+  f.hist=null;
+  try{var l=await api('GET','/tx/'+encodeURIComponent(f.id)+'/history')}catch(e){l=[]}
+  f.hist=l;if(form===f){var el=document.getElementById('f_hist');if(el){el.innerHTML=histHtml(l);tr(el)}}
+}
+function deletedHtml(){
+  var h='<div class="uhd"><div><h2 style="margin:0">🗑 Deleted entries</h2><small class="mut">Last 30 days · only the admin sees this</small></div></div>';
+  if(delList===undefined){delList=null;api('GET','/deleted').then(function(r){delList=r;if(tab==='deleted')render()}).catch(function(e){delList=[];seterr(e.message)})}
+  if(delList==null)return h+'<div class="card"><p class="mut">Loading…</p></div>';
+  if(!delList.length)return h+'<div class="card dempty"><b>Nothing deleted</b><p class="mut">Entries deleted in the last 30 days will appear here so you can restore them.</p></div>';
+  h+='<div class="card ul">';
+  delList.forEach(function(d){var s=d.snapshot,inn=s.kind==='in';
+    h+='<div class="ur" style="align-items:flex-start"><span class="aic '+(inn?'ci':'co')+'" style="width:34px;height:34px">'+(inn?'+':'−')+'</span><div class="un"><b>'+esc(s.notes||'(no notes)')+' · <span class="'+(inn?'in':'out')+'">'+fmt(s.amount)+'</span></b><small class="mut">Deleted by '+esc(d.actor)+' · '+when(d.ts)+'</small><small class="mut">'+esc(s.username)+'\'s entry · '+dshort(s.tx_date)+' '+s.tx_date.slice(0,4)+'</small></div><button class="sm" data-rs="'+d.id+'" style="flex:none">↺ Restore</button></div>'});
+  return h+'</div><p class="note2">Restoring puts the entry back exactly as it was.</p>';
+}
+function bindDeleted(){
+  app.querySelectorAll('[data-rs]').forEach(function(b){b.onclick=async function(){
+    if(!confirm(L('Restore this entry?')))return;b.disabled=true;
+    try{var r=await api('POST','/deleted/'+b.dataset.rs+'/restore');delList=delList.filter(function(d){return String(d.id)!==b.dataset.rs});await load();toast('✓ '+L('Restored')+' · '+L(r.type==='in'?'Cash In':'Cash Out')+' '+fmt(r.amount));render()}
+    catch(e){b.disabled=false;alert(L(e.message))}}});
 }
 
 // ---- Business settings (admin) ----
@@ -864,6 +933,7 @@ function actTextHi(a){
     case 'tx_add':return who+' '+ty+amt+' जोड़ा'+book;
     case 'tx_edit':return who+' '+ty+' एंट्री बदली'+(a.prev!=null&&a.prev!==a.amount?' '+fmt(a.prev)+' → '+fmt(a.amount):amt)+book;
     case 'tx_delete':return who+' '+ty+amt+' हटाया'+book;
+    case 'tx_restore':return who+' '+ty+amt+' वापस लाया'+book;
     case 'user_add':return a.owner===me?who+' आपका खाता बनाया':who+' यूज़र <b>'+esc(a.owner)+'</b> बनाया';
     case 'user_password':return a.owner===me?who+' आपका पासवर्ड बदला':who+' <b>'+esc(a.owner)+'</b> का पासवर्ड बदला';
     case 'user_delete':return who+' यूज़र <b>'+esc(a.owner)+'</b> हटाया';
@@ -919,7 +989,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='deleted')delList=undefined;tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   if(G('sbtn'))G('sbtn').onclick=function(){showQ=!showQ;if(!showQ)q='';focusQ=showQ;render()};
@@ -930,6 +1000,7 @@ function bind(admin){
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   $('[data-lang]').forEach(function(b){b.onclick=function(){setLang(b.dataset.lang)}});
   if(tab==='books')bindPeople();
+  if(tab==='deleted')bindDeleted();
   if(tab==='dash')dashCharts();
   bindSettings();bindExport(admin);
   $('[data-vu]').forEach(function(b){b.onclick=function(){fuser=b.dataset.vu;tab='tx';period='all';render();window.scrollTo(0,0)}});
