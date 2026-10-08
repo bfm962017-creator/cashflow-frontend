@@ -280,7 +280,7 @@ var MENU=[
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
-  {id:'deleted',icon:'🗑',label:'Deleted entries',admin:true},
+  {id:'deleted',icon:'🗑',label:'Deleted entries'},
   {id:'backup',icon:'💾',label:'Download backup'},
   {id:'lang',icon:'🌐',label:'Language / भाषा'}
 ];
@@ -389,7 +389,7 @@ var HI={
 'For':'यूज़र:','Tip: add customers and suppliers under':'सुझाव: ग्राहक और सप्लायर यहां जोड़ें:','to track what each one owes.':'ताकि पता रहे किससे कितना लेना है।','People → My parties':'लोग → मेरी पार्टियां','Tip: add your business name and logo in':'सुझाव: अपना बिज़नेस नाम और लोगो यहां जोड़ें:','✎ Edited':'✎ बदली गई','🕘 History':'🕘 इतिहास','Loading history…':'इतिहास लोड हो रहा है…','You':'आप','added this entry':'ने यह एंट्री जोड़ी','edited this entry':'ने यह एंट्री बदली','deleted this entry':'ने यह एंट्री हटाई','restored this entry':'ने यह एंट्री वापस लाई',
 'Type':'प्रकार','Amount':'रकम','Time':'समय','Description':'विवरण','Party':'पार्टी','(removed party)':'(हटाई गई पार्टी)','No changes recorded yet. Changes made from now on will show here.':'अभी कोई बदलाव दर्ज नहीं। अब से होने वाले बदलाव यहां दिखेंगे।',
 'Changes made before history was switched on are not shown.':'इतिहास शुरू होने से पहले के बदलाव नहीं दिखते।','History is saved automatically and can’t be edited.':'इतिहास अपने आप सेव होता है और बदला नहीं जा सकता।',
-'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
+'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · all users':'पिछले 30 दिन · सभी यूज़र','Last 30 days · your entries':'पिछले 30 दिन · आपकी एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
 'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','📄 Statement':'📄 स्टेटमेंट','📄 Statement ready':'📄 स्टेटमेंट तैयार','📤 Share PDF (WhatsApp…)':'📤 PDF भेजें (WhatsApp…)','💬 Download & open WhatsApp':'💬 डाउनलोड करें और WhatsApp खोलें','⬇ Download':'⬇ डाउनलोड','Close':'बंद करें','This phone cannot attach files directly. The PDF downloads first, then attach it in WhatsApp.':'यह फ़ोन सीधे फ़ाइल नहीं भेज सकता। पहले PDF डाउनलोड होगी, फिर WhatsApp में अटैच करें।','Could not make the PDF':'PDF नहीं बन सकी','Bill photo':'बिल की फ़ोटो','📷 Add bill photo':'📷 बिल की फ़ोटो जोड़ें','(optional)':'(वैकल्पिक)','🔄 Change':'🔄 बदलें','✕ Remove':'✕ हटाएं','Loading photo…':'फ़ोटो लोड हो रही है…','Photo':'फ़ोटो','New photo':'नई फ़ोटो',
 'Entry saved, but the photo did not upload. Open the entry to try again.':'एंट्री सेव हो गई, पर फ़ोटो अपलोड नहीं हुई। एंट्री खोलकर फिर कोशिश करें।','Could not read that photo':'फ़ोटो पढ़ी नहीं जा सकी','That file is not a photo':'यह फ़ाइल फ़ोटो नहीं है','Has bill photo':'बिल की फ़ोटो है','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
 'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Download backup':'बैकअप डाउनलोड करें','💾 Backup':'💾 बैकअप','Save a copy of your data to your phone':'अपने डेटा की कॉपी फ़ोन में सेव करें','Last backup':'आखिरी बैकअप','Never':'कभी नहीं','Last backup on this phone:':'इस फ़ोन पर आखिरी बैकअप:',
@@ -474,7 +474,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div>'+bellHtml()+'</div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'&&admin?deletedHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -762,14 +762,15 @@ async function loadHist(f){
   try{var l=await api('GET','/tx/'+encodeURIComponent(f.id)+'/history')}catch(e){l=[]}
   f.hist=l;if(form===f){var el=document.getElementById('f_hist');if(el){el.innerHTML=histHtml(l);tr(el)}}
 }
-function deletedHtml(){
-  var h='<div class="uhd"><div><h2 style="margin:0">🗑 Deleted entries</h2><small class="mut">Last 30 days · only the admin sees this</small></div></div>';
+// Admin sees every user's deleted entries; a user sees only their own cashbook's.
+function deletedHtml(admin){
+  var h='<div class="uhd"><div><h2 style="margin:0">🗑 Deleted entries</h2><small class="mut">'+(admin?'Last 30 days · all users':'Last 30 days · your entries')+'</small></div></div>';
   if(delList===undefined){delList=null;api('GET','/deleted').then(function(r){delList=r;if(tab==='deleted')render()}).catch(function(e){delList=[];seterr(e.message)})}
   if(delList==null)return h+'<div class="card"><p class="mut">Loading…</p></div>';
   if(!delList.length)return h+'<div class="card dempty"><b>Nothing deleted</b><p class="mut">Entries deleted in the last 30 days will appear here so you can restore them.</p></div>';
   h+='<div class="card ul">';
   delList.forEach(function(d){var s=d.snapshot,inn=s.kind==='in';
-    h+='<div class="ur" style="align-items:flex-start"><span class="aic '+(inn?'ci':'co')+'" style="width:34px;height:34px">'+(inn?'+':'−')+'</span><div class="un"><b>'+esc(s.notes||'(no notes)')+' · <span class="'+(inn?'in':'out')+'">'+fmt(s.amount)+'</span></b><small class="mut">Deleted by '+esc(d.actor)+' · '+when(d.ts)+'</small><small class="mut">'+esc(s.username)+'\'s entry · '+dshort(s.tx_date)+' '+s.tx_date.slice(0,4)+'</small></div><button class="sm" data-rs="'+d.id+'" style="flex:none">↺ Restore</button></div>'});
+    h+='<div class="ur" style="align-items:flex-start"><span class="aic '+(inn?'ci':'co')+'" style="width:34px;height:34px">'+(inn?'+':'−')+'</span><div class="un"><b>'+esc(s.notes||'(no notes)')+' · <span class="'+(inn?'in':'out')+'">'+fmt(s.amount)+'</span></b><small class="mut">Deleted by '+esc(d.actor)+' · '+when(d.ts)+'</small><small class="mut">'+(admin?esc(s.username)+'\'s entry · ':'')+dshort(s.tx_date)+' '+s.tx_date.slice(0,4)+'</small></div><button class="sm" data-rs="'+d.id+'" style="flex:none">↺ Restore</button></div>'});
   return h+'</div><p class="note2">Restoring puts the entry back exactly as it was.</p>';
 }
 function bindDeleted(){
