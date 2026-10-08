@@ -372,7 +372,7 @@ var HI={
 'Type':'प्रकार','Amount':'रकम','Time':'समय','Description':'विवरण','Party':'पार्टी','(removed party)':'(हटाई गई पार्टी)','No changes recorded yet. Changes made from now on will show here.':'अभी कोई बदलाव दर्ज नहीं। अब से होने वाले बदलाव यहां दिखेंगे।',
 'Changes made before history was switched on are not shown.':'इतिहास शुरू होने से पहले के बदलाव नहीं दिखते।','History is saved automatically and can’t be edited.':'इतिहास अपने आप सेव होता है और बदला नहीं जा सकता।',
 'Deleted entries':'हटाई गई एंट्री','🗑 Deleted entries':'🗑 हटाई गई एंट्री','Last 30 days · only the admin sees this':'पिछले 30 दिन · सिर्फ़ एडमिन देख सकता है','Loading…':'लोड हो रहा है…','Nothing deleted':'कुछ भी हटाया नहीं गया',
-'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
+'Entries deleted in the last 30 days will appear here so you can restore them.':'पिछले 30 दिनों में हटाई गई एंट्री यहां दिखेंगी ताकि आप उन्हें वापस ला सकें।','↺ Restore':'↺ वापस लाएं','📄 Statement':'📄 स्टेटमेंट','📄 Statement ready':'📄 स्टेटमेंट तैयार','📤 Share PDF (WhatsApp…)':'📤 PDF भेजें (WhatsApp…)','💬 Download & open WhatsApp':'💬 डाउनलोड करें और WhatsApp खोलें','⬇ Download':'⬇ डाउनलोड','Close':'बंद करें','This phone cannot attach files directly. The PDF downloads first, then attach it in WhatsApp.':'यह फ़ोन सीधे फ़ाइल नहीं भेज सकता। पहले PDF डाउनलोड होगी, फिर WhatsApp में अटैच करें।','Could not make the PDF':'PDF नहीं बन सकी','Restore this entry?':'यह एंट्री वापस लाएं?','Restored':'वापस आ गई',
 'Restoring puts the entry back exactly as it was.':'वापस लाने पर एंट्री बिल्कुल पहले जैसी लौट आती है।','This entry is already back':'यह एंट्री पहले ही वापस आ चुकी है','Download backup':'बैकअप डाउनलोड करें','💾 Backup':'💾 बैकअप','Save a copy of your data to your phone':'अपने डेटा की कॉपी फ़ोन में सेव करें','Last backup':'आखिरी बैकअप','Never':'कभी नहीं','Last backup on this phone:':'इस फ़ोन पर आखिरी बैकअप:',
 'One Excel file with every user’s entries, all parties and the user list.':'एक Excel फ़ाइल जिसमें सभी यूज़र की एंट्री, सभी पार्टियां और यूज़र लिस्ट है।','One Excel file with your entries and your parties.':'एक Excel फ़ाइल जिसमें आपकी एंट्री और पार्टियां हैं।',
 'Keep it on your phone, email it to yourself or upload it to Google Drive.':'इसे फ़ोन में रखें, खुद को ईमेल करें या Google Drive पर अपलोड करें।','⬇ Download backup (Excel)':'⬇ बैकअप डाउनलोड करें (Excel)','Backup downloaded':'बैकअप डाउनलोड हो गया','⚠ Important':'⚠ ज़रूरी',
@@ -931,19 +931,22 @@ function partyHtml(){
   var you=ro?esc(p.owner):'you',You=ro?esc(p.owner):'You';
   var h='<div class="pbar"><button class="sm" data-pback="1">← Parties</button><span class="un"><b>'+esc(p.name)+'<span class="tag">'+PK[p.kind]+'</span></b><small class="mut">'+(p.phone?esc(p.phone):'')+(ro?(p.phone?' · ':'')+'👤 '+esc(p.owner)+'\'s party · view only':'')+'</small></span>'+(ro?'':'<button class="ib" id="p_edit" aria-label="Edit party">✎</button>')+'</div>';
   h+='<div class="pbal '+(b>0?'g':b<0?'b':'')+'"><small>'+(b>0?esc(p.name)+' owes '+you:b<0?You+' owe'+(ro?'s ':' ')+esc(p.name):'All settled with '+esc(p.name))+'</small><div class="hv">'+fmt(Math.abs(b))+'</div><div class="acts">'+
-    (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(!ro&&!list.length?'<button id="p_del">🗑 Delete</button>':'')+'</div></div>';
+    (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<button id="p_stmt">📄 Statement</button><a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(!ro&&!list.length?'<button id="p_del">🗑 Delete</button>':'')+'</div></div>';
   h+='<div class="lh"><span>Entry</span><span class="out">'+You+' gave</span><span class="in">'+You+' got</span></div>';
   if(!rows.length)h+='<p class="mut pad">No entries yet.'+(ro?'':' Use the buttons below to record money you gave to or got from '+esc(p.name)+'.')+'</p>';
   rows.forEach(function(r){var t=r.t;
     h+='<div class="le" data-e="'+esc(t.id)+'"><div><div class="t">'+esc(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+'</div><div class="m">'+dshort(t.date)+' '+t.date.slice(0,4)+(t.desc?' · '+esc(t.desc):'')+'</div></div><div class="o">'+(t.type==='out'?fn(t.amount):'')+'</div><div class="g">'+(t.type==='in'?fn(t.amount):'')+'</div><div class="bal2">'+(r.bal>0?'Will get ':r.bal<0?'Will give ':'Settled ')+fn(Math.abs(r.bal))+'</div></div>'});
-  if(ro)return h;
-  return h+'<div style="height:90px"></div><div class="fixb"><div class="bbtn"><button class="go" data-pnew="out">You gave ₹</button><button class="gi" data-pnew="in">You got ₹</button></div></div>'+partySheet();
+  if(ro)return h+stmtSheet();
+  return h+'<div style="height:90px"></div><div class="fixb"><div class="bbtn"><button class="go" data-pnew="out">You gave ₹</button><button class="gi" data-pnew="in">You got ₹</button></div></div>'+partySheet()+stmtSheet();
 }
-function waLink(p,b){
+function waText(p,b){
   var bn=biz.name||'us',d=dlabel(today()).replace(/^\w+, /,''),msg='Hello '+p.name+',\n'+
     (b>0?'Your pending balance with *'+bn+'* is *₹'+fn(b)+'* as of '+d+'.\nPlease pay at your earliest. Thank you!':b<0?'*'+bn+'* has ₹'+fn(-b)+' payable to you as of '+d+'.\nThank you!':'Your account with *'+bn+'* is fully settled as of '+d+'. Thank you!')+(biz.name?'\n— '+biz.name:'');
+  return msg;
+}
+function waLink(p,b){
   var ph=(p.phone||'').replace(/\D/g,'');if(ph.length===10)ph='91'+ph;
-  return 'https://wa.me/'+(ph.length>=11?ph:'')+'?text='+encodeURIComponent(msg);
+  return 'https://wa.me/'+(ph.length>=11?ph:'')+'?text='+encodeURIComponent(waText(p,b));
 }
 function partySheet(){
   if(!psheet)return '';var f=psheet;
@@ -952,11 +955,62 @@ function partySheet(){
     '<select id="pp_k">'+Object.keys(PK).map(function(k){return '<option value="'+k+'"'+(f.kind===k?' selected':'')+'>'+PK[k]+'</option>'}).join('')+'</select>'+
     '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" data-psx>Cancel</button><button id="pp_save">'+(f.id?'Save':'Add party')+'</button></div></div>';
 }
+// ---- Party statement PDF ----
+// Builds a PDF of one party's ledger (logo, business, party, every entry with running balance).
+// Sharing needs a fresh tap (browsers block share after slow work), so the PDF is prepared first
+// and a small sheet then offers Share (WhatsApp etc.) and Download.
+var stmt=null;
+async function partyPdf(p){
+  await loadLibs('pdf');
+  var J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4'}),W=210,M=14,y=M,x=M,list=partyTx(p.id).slice().sort(cmp),run=0,g=0,o=0,rows=[];
+  list.forEach(function(t){run+=t.type==='out'?t.amount:-t.amount;t.type==='out'?g+=t.amount:o+=t.amount;rows.push({t:t,b:run})});
+  if(bizLogo){var sz=await imgSize(bizLogo),hh=18,ww=Math.min(40,hh*sz[0]/sz[1]);hh=ww*sz[1]/sz[0];doc.addImage(bizLogo,bizLogo.indexOf('image/png')>0?'PNG':'JPEG',M,y,ww,hh);x=M+ww+5}
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(biz.name||'Cashflow',x,y+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);if(biz.address)doc.text(doc.splitTextToSize(biz.address,W-M-x-62),x,y+11);
+  doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20);doc.text('Party statement',W-M,y+6,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text('As of '+dlabel(today()).replace(/^\w+, /,''),W-M,y+11,{align:'right'});
+  y+=26;doc.setDrawColor(220);doc.line(M,y,W-M,y);y+=7;
+  doc.setFontSize(9);doc.setTextColor(110);doc.text('STATEMENT FOR',M,y);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20);doc.text(p.name,M,y+6);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text([PK[p.kind],p.phone].filter(Boolean).join('  ·  '),M,y+11);y+=17;
+  var bw=(W-2*M-6)/3,box=function(i,l,v,c){var bx=M+i*(bw+3);doc.setFillColor(i===2?(b>0?231:b<0?253:245):245,i===2?(b>0?246:b<0?236:246):246,i===2?(b>0?238:b<0?236:248):248);doc.roundedRect(bx,y,bw,16,2,2,'F');
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(110);doc.text(l,bx+3,y+5.5);doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(c[0],c[1],c[2]);doc.text(v,bx+3,y+12.5)},b=run;
+  box(0,'You gave',  'Rs '+n2(g),[185,28,28]);box(1,'You got','Rs '+n2(o),[4,120,87]);
+  box(2,b>0?p.name+' owes you':b<0?'You owe '+p.name:'Settled','Rs '+n2(Math.abs(b)),b>0?[4,120,87]:b<0?[185,28,28]:[20,20,20]);
+  y+=22;
+  doc.autoTable({startY:y,head:[['Date','Details','You gave (Rs)','You got (Rs)','Balance (Rs)']],
+    body:rows.map(function(r){var t=r.t;return [dshort(t.date)+' '+t.date.slice(2,4),(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+(t.desc&&t.desc!==nt(t)?'\n'+t.desc:''),t.type==='out'?n2(t.amount):'',t.type==='in'?n2(t.amount):'',n2(Math.abs(r.b))+(r.b>0?' Dr':r.b<0?' Cr':'')]}),
+    margin:{left:M,right:M},theme:'grid',styles:{fontSize:9,cellPadding:2.2,lineColor:[225,230,230],lineWidth:.2,textColor:30},
+    headStyles:{fillColor:[15,118,110],textColor:255,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,250,250]},
+    columnStyles:{0:{cellWidth:22},2:{halign:'right',textColor:[185,28,28],cellWidth:28},3:{halign:'right',textColor:[4,120,87],cellWidth:28},4:{halign:'right',fontStyle:'bold',cellWidth:32}},
+    didDrawPage:function(){var pg=doc.internal.getNumberOfPages();doc.setFontSize(8);doc.setTextColor(140);doc.text((biz.name||'Cashflow')+' · Dr = '+p.name+' owes you, Cr = you owe '+p.name,M,290);doc.text('Page '+pg,W-M,290,{align:'right'})}});
+  if(!rows.length){doc.setFontSize(10);doc.setTextColor(120);doc.text('No entries yet.',M,doc.lastAutoTable.finalY+8)}
+  var fy=doc.lastAutoTable.finalY+10;doc.setFont('helvetica','bold');doc.setFontSize(11);doc.setTextColor(20);
+  doc.text(b>0?'Balance due from '+p.name+': Rs '+n2(b):b<0?'Balance payable to '+p.name+': Rs '+n2(-b):'Account settled',W-M,fy,{align:'right'});
+  var name=(p.name.replace(/[^\w\- ]+/g,' ').replace(/\s+/g,' ').trim()||'Party')+' statement '+today()+'.pdf';
+  return {blob:doc.output('blob'),name:name,p:p,b:b};
+}
+function stmtSheet(){
+  if(!stmt)return '';var p=stmt.p,canShare=!!(navigator.canShare&&navigator.canShare({files:[new File([stmt.blob],stmt.name,{type:'application/pdf'})]}));
+  return '<div class="ov" data-stx></div><div class="sheet" role="dialog" aria-label="Statement ready"><h2>📄 Statement ready</h2><p class="mut" style="margin:-4px 0 14px">'+esc(stmt.name)+'</p>'+
+    (canShare?'<button class="p" id="st_share" style="width:100%;margin-bottom:8px">📤 Share PDF (WhatsApp…)</button>':'<button class="p" id="st_wa" style="width:100%;margin-bottom:8px">💬 Download & open WhatsApp</button>')+
+    '<div class="bbtn"><button class="lt" data-stx>Close</button><button id="st_dl">⬇ Download</button></div>'+(canShare?'':'<p class="note" style="margin-top:10px">This phone cannot attach files directly. The PDF downloads first, then attach it in WhatsApp.</p>')+'</div>';
+}
+function bindStmt(){
+  var G=function(i){return document.getElementById(i)};
+  if(G('p_stmt'))G('p_stmt').onclick=async function(){var b=this,p=parties.find(function(x){return x.id===partyId});b.disabled=true;b.textContent=L('Preparing…');
+    try{stmt=await partyPdf(p);render()}catch(e){b.disabled=false;b.textContent=L('📄 Statement');alert(L(e.message||'Could not make the PDF'))}};
+  app.querySelectorAll('[data-stx]').forEach(function(x){x.onclick=function(){stmt=null;render()}});
+  if(G('st_dl'))G('st_dl').onclick=function(){saveFile(stmt.blob,stmt.name)};
+  if(G('st_share'))G('st_share').onclick=async function(){var s=stmt;
+    try{await navigator.share({files:[new File([s.blob],s.name,{type:'application/pdf'})],title:s.name,text:waText(s.p,s.b)})}catch(e){if(e&&e.name!=='AbortError')saveFile(s.blob,s.name)}};
+  if(G('st_wa'))G('st_wa').onclick=function(){saveFile(stmt.blob,stmt.name);window.open(waLink(stmt.p,stmt.b),'_blank')};
+}
+
 function bindPeople(){
   var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};
   $('[data-ps]').forEach(function(b){b.onclick=function(){pseg=b.dataset.ps;render()}});
   $('[data-pid]').forEach(function(b){b.onclick=function(){partyId=b.dataset.pid;render();window.scrollTo(0,0)}});
-  $('[data-pback]').forEach(function(b){b.onclick=function(){partyId=null;render()}});
+  $('[data-pback]').forEach(function(b){b.onclick=function(){partyId=null;stmt=null;render()}});
   $('[data-pu]').forEach(function(b){b.onclick=function(){puser=b.dataset.pu;partyId=null;render();window.scrollTo(0,0)}});
   $('[data-pub]').forEach(function(b){b.onclick=function(){puser=null;render()}});
   if(G('p_q'))G('p_q').oninput=function(e){var q=e.target.value.trim().toLowerCase();$('[data-pid]').forEach(function(r){r.style.display=!q||r.dataset.q.indexOf(q)>=0?'':'none'})};
@@ -1051,7 +1105,7 @@ function bind(admin){
   if(G('d_range'))G('d_range').onchange=function(e){range=e.target.value;sumAll=false;render()};
   if(G('sum_more'))G('sum_more').onclick=function(){sumAll=!sumAll;render()};
   $('[data-lang]').forEach(function(b){b.onclick=function(){setLang(b.dataset.lang)}});
-  if(tab==='books')bindPeople();
+  if(tab==='books'){bindPeople();bindStmt()}
   if(tab==='deleted')bindDeleted();
   if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
