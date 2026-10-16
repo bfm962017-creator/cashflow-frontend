@@ -288,6 +288,33 @@ a.wa{background:#16a34a;color:#fff;border-radius:16px;padding:5px 12px;font-size
 .lh{background:var(--thd);text-transform:uppercase;letter-spacing:.04em}
 .lsv{border-radius:8px}#toast{background:#047857}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]) .sgc button.on,:root:not([data-theme="light"]) .chip.on,:root:not([data-theme="light"]) button.p{color:#062b28}}
+/* ---- Phone polish: no zoom on typing, instant taps, bigger touch targets, nothing cut off on small screens ---- */
+html{-webkit-text-size-adjust:100%}
+button,a,label,select,.chip,.er,.le,.urow,.pki,[data-e],[data-pid]{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button:not(:disabled):active,a.btn:active,a.wa:active{transform:scale(.97);transition:transform .06s}
+.er:active,.le:not(.oth):active,.urow:active,.pki:active,.mi:active{background:var(--bg)}
+input,select,textarea{font-size:16px}
+.mbtn{min-width:42px;min-height:40px}.bell{min-width:42px;min-height:40px}
+button.sm,a.wa,.pcnt{min-height:36px}.chips2 button,.pfc .chip{min-height:36px}
+.ht b{max-width:calc(100vw - 160px)}
+.hp>div{min-width:0}.hp b{font-size:clamp(14px,4.4vw,16px);white-space:nowrap}
+.sum3 b{font-size:clamp(13px,4.2vw,16px)}.pt b{font-size:clamp(17px,5.4vw,20px)}
+.pr .un b,.pki .un b{display:flex;flex-wrap:wrap;align-items:center;row-gap:3px}.pr .r{max-width:42%}
+.sheet{max-height:92vh;overflow-y:auto;overscroll-behavior:contain}.drw{overscroll-behavior:contain}
+.chips{scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.dt button{padding:4px 7px}.dt input{padding-left:6px;padding-right:4px}.row2:has(> .dt){grid-template-columns:minmax(0,1fr) 124px}
+input[type=date],input[type=time]{padding-left:8px;padding-right:6px}.pfr{grid-template-columns:1fr 1fr}
+@media(max-width:380px){
+  .hp{grid-template-columns:1fr}
+  .exs{grid-template-columns:1fr 1fr}
+  .ch,.er{grid-template-columns:1fr 74px 74px}.ei,.eo{font-size:15px}
+  .lh,.le{grid-template-columns:1fr 70px 70px}
+  .bbtn button{padding:12px 8px}.bbtn.big button{padding:13px 6px;font-size:15px;letter-spacing:.02em}
+  .sgc{flex-wrap:wrap}.sgc button{flex:1 1 auto}
+  .ht{padding:10px 10px}.pad{padding:10px}.lh,.le{margin:0 -10px;padding-left:10px;padding-right:10px}
+  .pbal .hv{font-size:30px}
+}
+@media(max-width:340px){.row2,.row2:has(> .dt){grid-template-columns:1fr;gap:0}}
 </style>
 </head>
 <body>
