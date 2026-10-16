@@ -177,6 +177,10 @@ textarea{font:inherit;color:var(--tx);width:100%;padding:10px 12px;border:1px so
 .pt small{display:block;color:var(--mut);font-size:12px}.pt b{font-size:20px}
 .pr .r{text-align:right;flex:none}.pr .r small{display:block;font-size:11px;color:var(--mut)}.pr .r b{font-size:15px}
 .tag{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--bg);color:var(--mut);margin-left:6px;font-weight:500;vertical-align:1px}
+/* Party period filter */
+.chips.pfc{padding:0;display:flex;flex-wrap:wrap;margin:0 0 10px}.pfr{margin-bottom:4px}
+.pft{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}.pft div{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px}.pft small{display:block;color:var(--mut);font-size:12px}.pft b{font-size:18px}
+.pfn{font-size:12px;margin:0 0 8px}
 /* Common parties */
 .ctag{white-space:nowrap;font-size:11px;background:rgba(15,118,110,.12);color:var(--pri);border-radius:10px;padding:2px 8px;margin-left:6px;font-weight:600;vertical-align:1px}
 .who{display:inline-block;font-size:11px;font-weight:700;border-radius:5px;padding:0 6px;margin-right:5px}.le.oth{cursor:default}
@@ -292,7 +296,7 @@ a.wa{background:#16a34a;color:#fff;border-radius:16px;padding:5px 12px;font-size
 <script>
 (function(){
 var API=(window.CASHFLOW_API_URL||'').replace(/\/$/,'');
-var app=document.getElementById('app'),ctxs=[],rev=null,lockSel=null,transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
+var app=document.getElementById('app'),pf={k:'all',from:'',to:''},ctxs=[],rev=null,lockSel=null,transfers=[],peers=[],trf=null,users={},token=null,needsSetup=false,txs=[],me=null,tab='tx',range='7',period='all',q='',showQ=false,focusQ=false,form=null,ftype='all',fuser='all',ttype='in',err='',unsubs=[],inst=null,sheet=null,photoBytes=null,puser=null,parties=[],pseg='users',partyId=null,psheet=null,biz={},bizLogo=null,bizV=-1,bform=null,bdirty=false,exf='',ext='',exu='all',menu=false,menuAnim=false,activity=[],seenAt=0,prevSeen=0;
 // Side menu items. To add a feature, add a line here and a view for its id in viewMain.
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
@@ -376,6 +380,7 @@ async function init(){
 // The choice is per device. PDF / Excel exports stay in English.
 var lang=(function(){try{return localStorage.getItem('cf_lang')||'en'}catch(e){return 'en'}})();
 var HI={
+'Custom range':'अपनी तारीख','Cash out total':'कुल गया','Cash in total':'कुल आया','From':'से','To':'तक','No entries in this period.':'इस अवधि में कोई एंट्री नहीं।','Opening balance':'शुरुआती बैलेंस','Start':'शुरू',
 '🏢 Common':'🏢 कॉमन','Common parties are shared by all users. Everyone can record entries with them; only you can change their details.':'कॉमन पार्टियां सभी यूज़र के लिए हैं। सब इनके साथ एंट्री कर सकते हैं; विवरण सिर्फ़ आप बदल सकते हैं।',
 'Add customers or suppliers that all your users deal with.':'ऐसे ग्राहक या सप्लायर जोड़ें जिनसे आपके सभी यूज़र लेन-देन करते हैं।','+ Add common party':'+ कॉमन पार्टी जोड़ें','Add common party':'कॉमन पार्टी जोड़ें','Edit common party':'कॉमन पार्टी बदलें',
 'managed by admin':'एडमिन द्वारा','Business will get':'बिज़नेस को लेना है','Business will give':'बिज़नेस को देना है','Gave':'दिए','Got':'मिले','There is already a common party with that name':'इस नाम की कॉमन पार्टी पहले से है',
@@ -445,6 +450,7 @@ var HI={
 'Session expired. Please sign in again.':'सेशन खत्म हो गया। फिर से साइन इन करें।','Too many attempts. Try again in 15 minutes.':'बहुत ज़्यादा कोशिशें। 15 मिनट बाद फिर कोशिश करें।'
 };
 var HIP=[
+[/^(\d+) entr(?:y|ies) · all time$/,'$1 एंट्री · शुरू से'],[/^(\d+) entr(?:y|ies) · (.+)$/,'$1 एंट्री · $2'],
 [/^(.+) owes the business$/,'$1 से बिज़नेस को लेना है'],[/^Business owes (.+)$/,'बिज़नेस को $1 को देना है'],[/^(\S+) gave (₹[\d,.]+) · got (₹[\d,.]+)$/,'$1 ने दिए $2 · मिले $3'],[/^(\S+) gave (₹[\d,.]+)$/,'$1 ने दिए $2'],[/^(\S+) got (₹[\d,.]+)$/,'$1 को मिले $2'],
 [/^⇄ Transfer with (.+)\. Changes or deleting need (.+)'s OK\. Nothing changes until they agree\.$/,'⇄ $1 के साथ ट्रांसफ़र। बदलने या हटाने के लिए $2 की मंज़ूरी चाहिए। उनके मानने तक कुछ नहीं बदलेगा।'],
 [/^Ask (.+) to change$/,'$1 से बदलने को कहें'],[/^Ask (.+) to delete this transfer\? Nothing changes until they agree\.$/,'$1 से यह ट्रांसफ़र हटाने को कहें? उनके मानने तक कुछ नहीं बदलेगा।'],[/^⏳ Asked (.+) for OK$/,'⏳ $1 से मंज़ूरी मांगी'],
@@ -1131,6 +1137,10 @@ function myParties(){return parties.filter(function(p){return p.common||p.owner=
 // A common party's ledger combines every user's entries (others' arrive read-only in ctxs).
 function partyTx(id){var p=parties.find(function(x){return x.id===id});if(!p)return [];
   return p.common?txs.concat(ctxs).filter(function(t){return t.party===id}):txs.filter(function(t){return t.party===id&&t.user===p.owner})}
+// Party page period filter: All, Daily (today), Monthly (this month) or a custom From–To range.
+function pfRange(){var td=today();if(pf.k==='daily')return [td,td];if(pf.k==='monthly')return [td.slice(0,7)+'-01',td.slice(0,7)+'-31'];
+  if(pf.k==='custom')return [pf.from||'0000-00-00',pf.to||'9999-99-99'];return null}
+function pfLabel(R){var f=function(d){return dlabel(d).replace(/^\w+, /,'')};return pf.k==='custom'&&!pf.from&&!pf.to?'':(R[0]==='0000-00-00'?'Start':f(R[0]))+' – '+(R[1]==='9999-99-99'?f(today()):f(R[1]>today()?today():R[1]))}
 function whoTag(u){var h=0;for(var i=0;i<u.length;i++)h=(h*31+u.charCodeAt(i))%360;return '<span class="who" style="background:hsla('+h+',70%,50%,.15);color:hsl('+h+',60%,38%)">'+esc(u)+'</span>'}
 var CTAG='<span class="ctag">🏢 Common</span>';
 function pBal(id){return partyTx(id).reduce(function(s,t){return r2(s+(t.type==='out'?t.amount:-t.amount))},0)}
@@ -1180,9 +1190,16 @@ function partyHtml(){
     (p.phone?'<a class="btn" href="tel:'+esc(p.phone.replace(/\s/g,''))+'">📞 Call</a>':'')+'<button id="p_stmt">📄 Statement</button><a class="btn" target="_blank" rel="noopener" href="'+waLink(p,b)+'">💬 WhatsApp</a>'+(ed&&!list.length?'<button id="p_del">🗑 Delete</button>':'')+'</div></div>';
   if(cm&&list.length){var per={};list.forEach(function(t){var x=per[t.user]=per[t.user]||{g:0,o:0};t.type==='out'?x.g=r2(x.g+t.amount):x.o=r2(x.o+t.amount)});
     h+='<div class="cinfo">'+Object.keys(per).sort().map(function(k){var x=per[k];return '<span>'+esc(k)+(x.g?' gave '+fmt(x.g):'')+(x.g&&x.o?' ·':'')+(x.o?' got '+fmt(x.o):'')+'</span>'}).join('')+'</div>'}
+  var R=pfRange(),fr=R?rows.filter(function(x){return x.t.date>=R[0]&&x.t.date<=R[1]}):rows,fo=0,fi=0;
+  fr.forEach(function(x){x.t.type==='out'?fo=r2(fo+x.t.amount):fi=r2(fi+x.t.amount)});
+  if(list.length){h+='<div class="chips pfc">'+[['all','All'],['daily','Daily'],['monthly','Monthly'],['custom','Custom range']].map(function(c){return '<button class="chip'+(pf.k===c[0]?' on':'')+'" data-pf="'+c[0]+'">'+c[1]+'</button>'}).join('')+'</div>';
+    if(pf.k==='custom')h+='<div class="row2 pfr"><div><label class="fl" for="pf_from">From</label><input id="pf_from" type="date" value="'+esc(pf.from)+'"></div><div><label class="fl" for="pf_to">To</label><input id="pf_to" type="date" value="'+esc(pf.to)+'"></div></div>';
+    h+='<div class="pft"><div><small>Cash out total</small><b class="out">'+fmt(fo)+'</b></div><div><small>Cash in total</small><b class="in">'+fmt(fi)+'</b></div></div>'+
+      '<p class="mut pfn">'+fr.length+' entr'+(fr.length===1?'y':'ies')+(R&&pfLabel(R)?' · '+pfLabel(R):' · all time')+'</p>'}
   h+='<div class="lh"><span>Entry</span><span class="out">'+(cm?'Gave':You+' gave')+'</span><span class="in">'+(cm?'Got':You+' got')+'</span></div>';
+  if(list.length&&!fr.length)h+='<p class="mut pad">No entries in this period.</p>';
   if(!rows.length)h+='<p class="mut pad">No entries yet.'+(ro?'':' Use the buttons below to record money you gave to or got from '+esc(p.name)+'.')+'</p>';
-  rows.forEach(function(r){var t=r.t;
+  fr.forEach(function(r){var t=r.t;
     // Other users' lines in a common party are view-only (no data-e, so they do not open).
     h+='<div class="le'+(cm&&!adm&&t.user!==me?' oth':'')+'"'+(adm||t.user===me?' data-e="'+esc(t.id)+'"':'')+'><div><div class="t">'+esc(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+'</div><div class="m">'+(cm?whoTag(t.user):'')+dshort(t.date)+' '+t.date.slice(0,4)+(t.desc?' · '+esc(t.desc):'')+'</div></div><div class="o">'+(t.type==='out'?fn(t.amount):'')+'</div><div class="g">'+(t.type==='in'?fn(t.amount):'')+'</div><div class="bal2">'+(r.bal>0?'Will get ':r.bal<0?'Will give ':'Settled ')+fn(Math.abs(r.bal))+'</div></div>'});
   if(ro)return h+(ed?partySheet():'')+stmtSheet();
@@ -1215,13 +1232,15 @@ function partySheet(){
 var stmt=null;
 async function partyPdf(p){
   await loadLibs('pdf');
-  var J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4'}),W=210,M=14,y=M,x=M,list=partyTx(p.id).slice().sort(cmp),run=0,g=0,o=0,rows=[];
-  list.forEach(function(t){run=r2(run+(t.type==='out'?t.amount:-t.amount));t.type==='out'?g=r2(g+t.amount):o=r2(o+t.amount);rows.push({t:t,b:run})});
+  var J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4'}),W=210,M=14,y=M,x=M,list=partyTx(p.id).slice().sort(cmp),run=0,g=0,o=0,rows=[],R=pfRange(),open=0;
+  // With a period chosen on the party page, the statement covers that period: opening balance, its entries, closing balance.
+  list.forEach(function(t){if(R&&t.date>R[1])return;run=r2(run+(t.type==='out'?t.amount:-t.amount));if(R&&t.date<R[0]){open=run;return}
+    t.type==='out'?g=r2(g+t.amount):o=r2(o+t.amount);rows.push({t:t,b:run})});
   if(bizLogo){var sz=await imgSize(bizLogo),hh=18,ww=Math.min(40,hh*sz[0]/sz[1]);hh=ww*sz[1]/sz[0];doc.addImage(bizLogo,bizLogo.indexOf('image/png')>0?'PNG':'JPEG',M,y,ww,hh);x=M+ww+5}
   doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(biz.name||'Cashflow',x,y+6);
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);if(biz.address)doc.text(doc.splitTextToSize(biz.address,W-M-x-62),x,y+11);
   doc.setFont('helvetica','bold');doc.setFontSize(12);doc.setTextColor(20);doc.text('Party statement',W-M,y+6,{align:'right'});
-  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text('As of '+dlabel(today()).replace(/^\w+, /,''),W-M,y+11,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text(R?'Period '+pfLabel(R):'As of '+dlabel(today()).replace(/^\w+, /,''),W-M,y+11,{align:'right'});
   y+=26;doc.setDrawColor(220);doc.line(M,y,W-M,y);y+=7;
   doc.setFontSize(9);doc.setTextColor(110);doc.text('STATEMENT FOR',M,y);doc.setFont('helvetica','bold');doc.setFontSize(14);doc.setTextColor(20);doc.text(p.name,M,y+6);
   doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text([PK[p.kind],p.phone].filter(Boolean).join('  ·  '),M,y+11);y+=17;
@@ -1232,7 +1251,7 @@ async function partyPdf(p){
   box(2,b>0?p.name+(cm?' owes the business':' owes you'):b<0?(cm?'Business owes ':'You owe ')+p.name:'Settled','Rs '+n2(Math.abs(b)),b>0?[4,120,87]:b<0?[185,28,28]:[20,20,20]);
   y+=22;
   doc.autoTable({startY:y,head:[['Date','Details',cm?'Gave (Rs)':'You gave (Rs)',cm?'Got (Rs)':'You got (Rs)','Balance (Rs)']],
-    body:rows.map(function(r){var t=r.t;return [dshort(t.date)+' '+t.date.slice(2,4),(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+(t.desc&&t.desc!==nt(t)?'\n'+t.desc:'')+(cm?'\nby '+t.user:''),t.type==='out'?n2(t.amount):'',t.type==='in'?n2(t.amount):'',n2(Math.abs(r.b))+(r.b>0?' Dr':r.b<0?' Cr':'')]}),
+    body:(R?[['','Opening balance','','',n2(Math.abs(open))+(open>0?' Dr':open<0?' Cr':'')]]:[]).concat(rows.map(function(r){var t=r.t;return [dshort(t.date)+' '+t.date.slice(2,4),(nt(t)||(t.type==='out'?'Cash given':'Cash received'))+(t.desc&&t.desc!==nt(t)?'\n'+t.desc:'')+(cm?'\nby '+t.user:''),t.type==='out'?n2(t.amount):'',t.type==='in'?n2(t.amount):'',n2(Math.abs(r.b))+(r.b>0?' Dr':r.b<0?' Cr':'')]})),
     margin:{left:M,right:M},theme:'grid',styles:{fontSize:9,cellPadding:2.2,lineColor:[225,230,230],lineWidth:.2,textColor:30},
     headStyles:{fillColor:[15,118,110],textColor:255,fontStyle:'bold'},alternateRowStyles:{fillColor:[247,250,250]},
     columnStyles:{0:{cellWidth:22},2:{halign:'right',textColor:[185,28,28],cellWidth:28},3:{halign:'right',textColor:[4,120,87],cellWidth:28},4:{halign:'right',fontStyle:'bold',cellWidth:32}},
@@ -1263,7 +1282,9 @@ function bindStmt(){
 function bindPeople(){
   var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};
   $('[data-ps]').forEach(function(b){b.onclick=function(){pseg=b.dataset.ps;render()}});
-  $('[data-pid]').forEach(function(b){b.onclick=function(){partyId=b.dataset.pid;render();window.scrollTo(0,0)}});
+  $('[data-pid]').forEach(function(b){b.onclick=function(){partyId=b.dataset.pid;pf={k:'all',from:'',to:''};render();window.scrollTo(0,0)}});
+  $('[data-pf]').forEach(function(b){b.onclick=function(){pf.k=b.dataset.pf;render()}});
+  ['pf_from','pf_to'].forEach(function(i){var e=G(i);if(e)e.onchange=function(){pf[i==='pf_from'?'from':'to']=e.value;render()}});
   $('[data-pback]').forEach(function(b){b.onclick=function(){partyId=null;stmt=null;render()}});
   $('[data-pu]').forEach(function(b){b.onclick=function(){puser=b.dataset.pu;partyId=null;render();window.scrollTo(0,0)}});
   $('[data-pub]').forEach(function(b){b.onclick=function(){puser=null;render()}});
