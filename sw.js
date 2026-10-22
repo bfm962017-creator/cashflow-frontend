@@ -1,7 +1,7 @@
 // Cashflow service worker: keeps the app shell available offline.
 // Same-origin files are network-first (so updates show up right away) with a cache fallback.
 // API calls go to another origin and are never cached.
-var CACHE = 'cashflow-v39';
+var CACHE = 'cashflow-v40';
 var SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png', 'icons/favicon-32.png'];
 
@@ -23,5 +23,22 @@ self.addEventListener('fetch', function (e) {
     return res;
   }).catch(function () {
     return caches.match(r).then(function (m) { return m || (r.mode === 'navigate' ? caches.match('index.html') : Response.error()); });
+  }));
+});
+
+// Push notifications: show them, and open (or focus) the app on the right page when tapped.
+self.addEventListener('push', function (e) {
+  var d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (x) { d = { body: e.data ? e.data.text() : '' }; }
+  e.waitUntil(self.registration.showNotification(d.title || 'Cashflow', {
+    body: d.body || '', icon: 'icons/icon-192.png', tag: d.tag, renotify: !!d.tag, data: { go: d.go || 'tx' }
+  }));
+});
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  var go = (e.notification.data && e.notification.data.go) || 'tx';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (cs) {
+    for (var i = 0; i < cs.length; i++) if ('focus' in cs[i]) { cs[i].postMessage({ go: go }); return cs[i].focus(); }
+    return self.clients.openWindow('./?go=' + go);
   }));
 });
