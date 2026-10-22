@@ -365,6 +365,16 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .cops{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:-2px 0 10px}.cops button{padding:8px 0;font-size:18px;font-weight:700;color:var(--pri);background:var(--card);border:1px solid var(--bd);border-radius:10px;min-height:40px}.cops .ceq{background:var(--pri);color:#fff;border-color:var(--pri)}
 .cdone{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;margin:-4px 0 10px;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}.cundo{margin-left:auto;border:0;background:none;padding:0 2px;color:var(--pri);font-weight:700;font-size:13px}
 .cres[hidden],.cdone[hidden]{display:none}
+/* User report */
+.pfd{display:flex;align-items:center;gap:8px;margin-bottom:8px}.pfd input{flex:1;min-width:0;margin:0}
+.pfr{display:block;margin:0 2px 10px}
+.pft{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}.pft span,.pfv span{min-width:0}.pft small,.pfv small{display:block;font-size:11px;color:var(--mut)}.pft b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfu{padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer}.pfu:last-child{border:0}
+.pfh{display:flex;align-items:center;gap:8px}.pfh .un{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pfn{font-weight:700;color:var(--mut);width:16px;text-align:center}.pfa{font-size:12px;font-weight:700;white-space:nowrap}
+.pfv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 0 24px}.pfv b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pfb{height:6px;border-radius:3px;background:var(--bd);margin:6px 0 4px 24px;overflow:hidden}.pfb i{display:block;height:100%;background:var(--cin);border-radius:3px}
+.pfu .ags{margin-left:24px}.pfl{font-weight:600}.pup{color:#12805c}.pdn{color:#c2362b}
+.pfs{display:block;width:100%;height:90px;margin:10px 0 4px}.pfs rect{fill:var(--cin)}.pfx{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:6px}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -387,6 +397,7 @@ var MENU=[
   {id:'transfer',icon:'⇄',label:'Transfer',user:true},
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'ageing',icon:'⏱',label:'Ageing report'},
+  {id:'perf',icon:'🏆',label:'User report',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
   {id:'settings',icon:'⚙️',label:'Business settings',admin:true},
   {id:'lock',icon:'🔒',label:'Lock old entries',admin:true},
@@ -434,7 +445,7 @@ async function api(m,u,b){
 }
 function signout(){
   var tk=token;if(tk&&pushOk())pushSub().then(function(x){if(x)fetch(API+'/api/push/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({endpoint:x.endpoint})}).catch(function(){})}).catch(function(){});
-  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];ctxs=d.ctxs||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -685,7 +696,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div><div class="hbtn"><button class="gh bell" id="srch" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'+bellHtml()+'</div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -1264,6 +1275,119 @@ function bindAgeing(admin){
   if(G('ag_open'))G('ag_open').onclick=function(){tab='books';partyId=agPid;agPid=null;puser=null;pf={k:'all',from:'',to:''};lsheet=false;render();window.scrollTo(0,0)};
   var ex=function(id,f){if(G(id))G(id).onclick=async function(){var b=G(id);b.disabled=true;try{await f(admin)}catch(e){alert(L('Could not create the file. Check your internet and try again.'))}b.disabled=false}};
   ex('ag_pdf',agPdf);ex('ag_xls',agXls);
+}
+
+// ---- User report (admin): how much each user collected and spent in a period ----
+// Transfers between users are shown apart and not counted as In or Out, so moving cash between users
+// does not make anyone look bigger. Deleted entries are gone from txs, so they never count.
+var perf={p:'month',from:'',to:'',sort:'in',u:null},perfChg=null,perfKey='';
+var PERFP=[['today','Today'],['week','Week'],['month','Month'],['custom','Custom']];
+var PERFS=[['in','In'],['out','Out'],['net','Net'],['n','Entries']];
+// [from, to, previous from, previous to]: the period and the one before it, for the ▲▼ comparison.
+function perfRange(){var td=today();
+  if(perf.p==='today')return [td,td,addDays(td,-1),addDays(td,-1)];
+  if(perf.p==='week')return [addDays(td,-6),td,addDays(td,-13),addDays(td,-7)];
+  if(perf.p==='month'){var f=td.slice(0,8)+'01',pl=addDays(f,-1),pf=pl.slice(0,8)+'01',pt=pf.slice(0,8)+td.slice(8);return [f,td,pf,pt>pl?pl:pt]}
+  var a=perf.from||td,b=perf.to||td;if(a>b){var x=a;a=b;b=x}var n=Math.round((Date.parse(b)-Date.parse(a))/864e5);return [a,b,addDays(a,-n-1),addDays(a,-1)]}
+function perfStats(u,a,b){var s={u:u,i:0,o:0,n:0,ti:0,to:0,day:{},pt:{},ps:{},bal:0,lastTs:0};
+  txs.forEach(function(t){if(t.user!==u)return;
+    s.bal=r2(s.bal+(t.type==='in'?t.amount:-t.amount));if(!t.transfer&&(t.ts||0)>s.lastTs)s.lastTs=t.ts||0;
+    if(t.date<a||t.date>b)return;
+    if(t.transfer){t.type==='in'?s.ti=r2(s.ti+t.amount):s.to=r2(s.to+t.amount);return}
+    s.n++;if(t.party)s.ps[t.party]=1;
+    if(t.type==='in'){s.i=r2(s.i+t.amount);s.day[t.date]=r2((s.day[t.date]||0)+t.amount);if(t.party)s.pt[t.party]=r2((s.pt[t.party]||0)+t.amount)}
+    else s.o=r2(s.o+t.amount)});
+  s.net=r2(s.i-s.o);s.np=Object.keys(s.ps).length;return s}
+// Users to list: everyone except the admin, plus removed users who still have entries in the period.
+function perfUsers(a,b){var u={};Object.keys(users).forEach(function(k){if(users[k].role!=='admin')u[k]=1});
+  txs.forEach(function(t){if(!users[t.user]&&t.date>=a&&t.date<=b)u[t.user]=1});return Object.keys(u)}
+function perfVal(s,k){return k==='n'?s.n:k==='net'?s.net:k==='out'?s.o:s.i}
+function perfList(){var R=perfRange(),k=perf.sort;
+  return perfUsers(R[0],R[1]).map(function(u){var s=perfStats(u,R[0],R[1]);s.prev=perfStats(u,R[2],R[3]);return s})
+    .sort(function(x,y){return perfVal(y,k)-perfVal(x,k)||x.u.localeCompare(y.u)})}
+// Edit and delete counts live on the server (the app only keeps the last 100 activities).
+function perfLoad(R){var from=Date.parse(R[0]+'T00:00:00'),to=Date.parse(addDays(R[1],1)+'T00:00:00'),key=from+'|'+to;
+  if(perfKey===key)return;perfKey=key;perfChg=null;
+  api('GET','/report/changes?from='+from+'&to='+to).then(function(r){if(perfKey!==key)return;perfChg=r;if(tab==='perf')render()}).catch(function(){if(perfKey===key)perfKey=''})}
+function perfArrow(v,p){if(!p&&!v)return '';if(!p)return '<span class="pup">▲ new</span>';var d=Math.round((v-p)/Math.abs(p)*100);
+  return d===0?'<span class="mut">= 0%</span>':'<span class="'+(d>0?'pup':'pdn')+'">'+(d>0?'▲ ':'▼ ')+Math.abs(d)+'%</span>'}
+function perfRangeTxt(R){return R[0]===R[1]?dshort(R[0])+' '+R[0].slice(0,4):dshort(R[0])+' – '+dshort(R[1])+' '+R[1].slice(0,4)}
+function perfHtml(){
+  var R=perfRange();perfLoad(R);
+  if(perf.u)return perfDetail(R);
+  var Ls=perfList(),T={i:0,o:0,n:0};Ls.forEach(function(s){T.i=r2(T.i+s.i);T.o=r2(T.o+s.o);T.n+=s.n});
+  var h='<div class="uhd"><div><h2 style="margin:0">🏆 User report</h2><small class="mut">How much each user collected and spent</small></div></div>';
+  h+='<div class="sgc" style="margin-bottom:8px">'+PERFP.map(function(p){return '<button data-pfp="'+p[0]+'" class="'+(perf.p===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
+  if(perf.p==='custom')h+='<div class="pfd"><input type="date" id="pf_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="pf_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
+  h+='<small class="mut pfr">'+esc(perfRangeTxt(R))+'</small>';
+  h+='<div class="card"><small class="mut">Total · all users</small><div class="pft"><span><small>In</small><b class="in">'+fmt(T.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(T.o)+'</b></span><span><small>Net</small><b class="'+(T.i-T.o<0?'out':'')+'">'+sgn(r2(T.i-T.o))+'</b></span></div>'+
+    '<small class="mut">'+T.n+' entr'+(T.n===1?'y':'ies')+'</small></div>';
+  if(!Ls.length)return h+'<div class="card dempty"><b>No users yet</b><p class="mut">Add users in Manage users. Their entries show up here.</p></div>';
+  h+='<div class="sgc" style="margin-bottom:10px">'+PERFS.map(function(p){return '<button data-pfs="'+p[0]+'" class="'+(perf.sort===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
+  h+='<div class="card ul">'+Ls.map(function(s,i){var pc=T.i?Math.round(s.i/T.i*100):0,idle=s.lastTs?Math.floor((Date.now()-s.lastTs)/864e5):null,k=perf.sort;
+    return '<div class="pfu" data-pfu="'+esc(s.u)+'"><div class="pfh"><span class="pfn">'+(i+1)+'</span><span class="av sm">'+esc(s.u.charAt(0).toUpperCase())+'</span><b class="un">'+esc(s.u)+(users[s.u]?'':' <small class="mut">(removed)</small>')+'</b><span class="pfa">'+perfArrow(perfVal(s,k),perfVal(s.prev,k))+'</span></div>'+
+      '<div class="pfv"><span><small>In</small><b class="in">'+fmt(s.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(s.o)+'</b></span><span><small>Net</small><b class="'+(s.net<0?'out':'')+'">'+sgn(s.net)+'</b></span></div>'+
+      '<div class="pfb"><i style="width:'+pc+'%"></i></div>'+
+      '<div class="ags"><span>'+pc+'% of In</span><span>'+s.n+' entr'+(s.n===1?'y':'ies')+'</span><span>'+s.np+' part'+(s.np===1?'y':'ies')+'</span>'+
+      (idle==null?'<span class="pdn">⚠ No entries yet</span>':idle>=3?'<span class="pdn">⚠ '+idle+' days no entry</span>':'<span>Last entry: <b class="pfl">'+esc(ago(s.lastTs))+'</b></span>')+'</div></div>'}).join('')+'</div>';
+  h+='<div class="bbtn" style="margin-top:10px"><button class="gpdf" id="pf_pdf">⬇ PDF</button><button class="gxls" id="pf_xls">⬇ Excel</button></div>';
+  return h+'<p class="mut" style="font-size:12px;margin:10px 2px 0">ℹ️ ▲▼ compare with the period before. Transfers between users are not counted as In or Out. Tap a user for details.</p>';
+}
+function perfDetail(R){
+  var s=perfStats(perf.u,R[0],R[1]),c=perfChg&&perfChg[perf.u],h='<div class="pbar"><button class="sm" id="pf_back">← User report</button><span class="un"><b>'+esc(perf.u)+'</b><small class="mut">'+esc(perfRangeTxt(R))+'</small></span></div>';
+  h+='<div class="card"><div class="pft"><span><small>In</small><b class="in">'+fmt(s.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(s.o)+'</b></span><span><small>Net</small><b class="'+(s.net<0?'out':'')+'">'+sgn(s.net)+'</b></span></div>'+
+    '<div class="agu"><span>Transfers sent</span><b>'+fmt(s.to)+'</b></div><div class="agu"><span>Transfers received</span><b>'+fmt(s.ti)+'</b></div>'+
+    '<div class="agu"><span>Cash in hand now</span><b class="'+(s.bal<0?'out':'')+'">'+sgn(s.bal)+'</b></div></div>';
+  // Day by day (month by month for long ranges)
+  var days=[],n=Math.round((Date.parse(R[1])-Date.parse(R[0]))/864e5)+1,mon=n>62,best=null;
+  if(mon){var bym={};Object.keys(s.day).forEach(function(d){bym[d.slice(0,7)]=r2((bym[d.slice(0,7)]||0)+s.day[d])});for(var m=R[0].slice(0,7);m<=R[1].slice(0,7);m=addDays(m+'-01',32).slice(0,7))days.push({k:m,v:bym[m]||0})}
+  else for(var d=R[0];d<=R[1];d=addDays(d,1))days.push({k:d,v:s.day[d]||0});
+  days.forEach(function(x){if(x.v&&(!best||x.v>best.v))best=x});
+  if(days.length>1){var mx=Math.max.apply(null,days.map(function(x){return x.v}))||1,bw=100/days.length;
+    h+='<div class="card"><b>'+(mon?'Month by month (In)':'Day by day (In)')+'</b><svg class="pfs" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="Money in per '+(mon?'month':'day')+'">'+days.map(function(x,i){var hh=x.v?Math.max(1.5,x.v/mx*38):0;return hh?'<rect x="'+(i*bw+bw*.15)+'" y="'+(40-hh)+'" width="'+(bw*.7)+'" height="'+hh+'"><title>'+esc(dshort(x.k))+': '+fmt(x.v)+'</title></rect>':''}).join('')+'</svg>'+
+      '<div class="pfx"><span>'+esc(dshort(days[0].k))+'</span><span>'+esc(dshort(days[days.length-1].k))+'</span></div>'+
+      (best?'<small class="mut">Best '+(mon?'month':'day')+': '+esc(dshort(best.k))+' · '+fmt(best.v)+'</small>':'<small class="mut">No money in during this period</small>')+'</div>'}
+  var top=Object.keys(s.pt).map(function(id){var p=parties.find(function(x){return x.id===id});return {n:p?p.name:'(removed party)',v:s.pt[id]}}).sort(function(a,b){return b.v-a.v}).slice(0,5);
+  h+='<div class="ssec">Top parties collected from</div><div class="card ul">'+(top.length?top.map(function(x,i){return '<div class="agu"><span>'+(i+1)+'. '+esc(x.n)+'</span><b class="in">'+fmt(x.v)+'</b></div>'}).join(''):'<p class="mut" style="margin:0">No money in from parties in this period.</p>')+'</div>';
+  h+='<div class="card"><div class="agu"><span>Entries</span><b>'+s.n+'</b></div><div class="agu"><span>Edited</span><b>'+(perfChg?(c?c.edit:0):'…')+'</b></div><div class="agu"><span>Deleted</span><b>'+(perfChg?(c?c['delete']:0):'…')+'</b></div></div>';
+  return h+'<div class="bbtn"><button class="lt" id="pf_ent">Open their entries</button><button class="lt" id="pf_del">Deleted entries</button></div>';
+}
+function perfRows(){var Ls=perfList();return Ls.map(function(s){var c=perfChg&&perfChg[s.u]||{edit:0,'delete':0};return {u:s.u,i:s.i,o:s.o,net:s.net,n:s.n,np:s.np,to:s.to,ti:s.ti,ed:c.edit,de:c['delete'],bal:s.bal}})}
+async function perfPdf(){
+  await loadLibs('pdf');var R=perfRange(),rows=perfRows(),J=window.jspdf.jsPDF,doc=new J({unit:'mm',format:'a4',orientation:'landscape'}),W=297,M=12,y=M,T={i:0,o:0,n:0};
+  rows.forEach(function(r){T.i=r2(T.i+r.i);T.o=r2(T.o+r.o);T.n+=r.n});
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(20);doc.text(biz.name||'Cashflow',M,y+6);
+  doc.setFontSize(12);doc.text('User report',W-M,y+6,{align:'right'});doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(100);doc.text(perfRangeTxt(R),W-M,y+11,{align:'right'});
+  var body=rows.map(function(r){return [r.u,n2(r.i),n2(r.o),n2(r.net),r.n,r.np,n2(r.to),n2(r.ti),r.ed,r.de,n2(r.bal)]});
+  body.push(['Total',n2(T.i),n2(T.o),n2(r2(T.i-T.o)),T.n,'','','','','','']);
+  doc.autoTable({startY:y+18,head:[['User','In','Out','Net','Entries','Parties','Transfers sent','Transfers received','Edited','Deleted','Cash in hand now']],body:body,margin:{left:M,right:M},theme:'grid',
+    styles:{fontSize:9,cellPadding:2,lineColor:[230,230,230],lineWidth:.2,textColor:30},headStyles:{fillColor:[33,150,243],textColor:255,fontStyle:'bold'},
+    columnStyles:{1:{halign:'right',textColor:[18,128,92]},2:{halign:'right',textColor:[194,54,43]},3:{halign:'right',fontStyle:'bold'},4:{halign:'right'},5:{halign:'right'},6:{halign:'right'},7:{halign:'right'},8:{halign:'right'},9:{halign:'right'},10:{halign:'right'}},
+    didParseCell:function(d){if(d.section==='body'&&d.row.index===body.length-1)d.cell.styles.fontStyle='bold'},
+    didDrawPage:function(){var pg=doc.internal.getNumberOfPages();doc.setFontSize(8);doc.setTextColor(140);doc.text((biz.name||'Cashflow')+' · Amounts in Rs · transfers between users are not counted as In or Out',M,203);doc.text('Page '+pg,W-M,203,{align:'right'})}});
+  saveFile(doc.output('blob'),'User report '+R[0]+' to '+R[1]+'.pdf');
+}
+async function perfXls(){
+  await loadLibs('xls');var R=perfRange(),rows=perfRows(),wb=new ExcelJS.Workbook(),ws=wb.addWorksheet('Users'),money='#,##0.00;-#,##0.00',T={i:0,o:0,n:0};
+  ws.columns=[['User','u',16],['In','i',14],['Out','o',14],['Net','net',14],['Entries','n',9],['Parties','np',9],['Transfers sent','to',15],['Transfers received','ti',17],['Edited','ed',8],['Deleted','de',8],['Cash in hand now','bal',17]].map(function(c){return {header:c[0],key:c[1],width:c[2]}});
+  var r1=ws.getRow(1);r1.font={bold:true,color:{argb:'FFFFFFFF'}};r1.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF2196F3'}};ws.views=[{state:'frozen',ySplit:1}];
+  rows.forEach(function(r){T.i=r2(T.i+r.i);T.o=r2(T.o+r.o);T.n+=r.n;ws.addRow(r)});
+  var tr2=ws.addRow({u:'Total',i:T.i,o:T.o,net:r2(T.i-T.o),n:T.n});tr2.font={bold:true};
+  ['i','o','net','to','ti','bal'].forEach(function(k){ws.getColumn(k).numFmt=money});
+  ws.addRow({});ws.addRow({u:'Period: '+perfRangeTxt(R)});
+  var buf=await wb.xlsx.writeBuffer();saveFile(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),'User report '+R[0]+' to '+R[1]+'.xlsx');
+}
+function bindPerf(){
+  var G=function(i){return document.getElementById(i)};
+  app.querySelectorAll('[data-pfp]').forEach(function(b){b.onclick=function(){perf.p=b.dataset.pfp;if(perf.p==='custom'&&!perf.from){perf.from=addDays(today(),-29);perf.to=today()}render()}});
+  app.querySelectorAll('[data-pfs]').forEach(function(b){b.onclick=function(){perf.sort=b.dataset.pfs;render()}});
+  app.querySelectorAll('[data-pfu]').forEach(function(r){r.onclick=function(){perf.u=r.dataset.pfu;render();window.scrollTo(0,0)}});
+  ['pf_from','pf_to'].forEach(function(id){if(G(id))G(id).onchange=function(e){if(!e.target.value)return;perf[id==='pf_from'?'from':'to']=e.target.value;render()}});
+  if(G('pf_back'))G('pf_back').onclick=function(){perf.u=null;render()};
+  if(G('pf_ent'))G('pf_ent').onclick=function(){tab='tx';fuser=perf.u;perf.u=null;render();window.scrollTo(0,0)};
+  if(G('pf_del'))G('pf_del').onclick=function(){tab='deleted';delList=undefined;perf.u=null;render();window.scrollTo(0,0)};
+  var ex=function(id,f){if(G(id))G(id).onclick=async function(){var b=G(id);b.disabled=true;try{await f()}catch(e){alert(L('Could not create the file. Check your internet and try again.'))}b.disabled=false}};
+  ex('pf_pdf',perfPdf);ex('pf_xls',perfXls);
 }
 
 // ---- Push notifications on this phone ----
@@ -1939,6 +2063,25 @@ var HGP=[
 [/^(.+) added · (.+)$/,'$1 ne joda · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 se lena hai $2'],
 [/^(.* · )?last (.+)$/,function(m,a,b){return (a||'')+'aakhri '+b}]
 ];
+// User report texts (only added where the dictionaries do not have them yet).
+(function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
+  add(HI,{'User report':'यूज़र रिपोर्ट','🏆 User report':'🏆 यूज़र रिपोर्ट','← User report':'← यूज़र रिपोर्ट','How much each user collected and spent':'हर यूज़र ने कितना लिया और कितना खर्च किया',
+    'Today':'आज','Week':'हफ़्ता','Month':'महीना','to':'से','Total · all users':'कुल · सभी यूज़र','In':'आए','Out':'गए','Net':'शुद्ध','Entries':'एंट्री',
+    'No users yet':'अभी कोई यूज़र नहीं','Add users in Manage users. Their entries show up here.':'यूज़र मैनेज करें में यूज़र जोड़ें। उनकी एंट्री यहां दिखेंगी।',
+    'Transfers sent':'भेजे गए ट्रांसफ़र','Transfers received':'मिले ट्रांसफ़र','Cash in hand now':'अभी हाथ में नकद','Day by day (In)':'दिन के हिसाब से (आए)','Month by month (In)':'महीने के हिसाब से (आए)',
+    'No money in during this period':'इस समय में कोई पैसा नहीं आया','Top parties collected from':'सबसे ज़्यादा जिनसे पैसा आया','No money in from parties in this period.':'इस समय में पार्टियों से कोई पैसा नहीं आया।',
+    'Edited':'बदली गई','Deleted':'हटाई गई','Open their entries':'उनकी एंट्री खोलें','Deleted entries':'हटाई गई एंट्री','⚠ No entries yet':'⚠ अभी कोई एंट्री नहीं','(removed party)':'(हटाई गई पार्टी)','▲ new':'▲ नया','Last entry:':'आखिरी एंट्री:',
+    'ℹ️ ▲▼ compare with the period before. Transfers between users are not counted as In or Out. Tap a user for details.':'ℹ️ ▲▼ पिछले समय से तुलना है। यूज़र के बीच ट्रांसफ़र आए या गए में नहीं गिने जाते। पूरी जानकारी के लिए यूज़र पर टैप करें।'});
+  add(HG,{'User report':'User report','🏆 User report':'🏆 User report','← User report':'← User report','How much each user collected and spent':'Har user ne kitna liya aur kitna kharch kiya',
+    'Today':'Aaj','Week':'Hafta','Month':'Mahina','to':'se','Total · all users':'Kul · sabhi users','In':'Aaya','Out':'Gaya','Net':'Net','Entries':'Entries',
+    'No users yet':'Abhi koi user nahi','Add users in Manage users. Their entries show up here.':'Manage users mein user jodein. Unki entries yahan dikhengi.',
+    'Transfers sent':'Bheje gaye transfer','Transfers received':'Mile transfer','Cash in hand now':'Abhi haath mein cash','Day by day (In)':'Din ke hisaab se (Aaya)','Month by month (In)':'Mahine ke hisaab se (Aaya)',
+    'No money in during this period':'Is samay mein koi paisa nahi aaya','Top parties collected from':'Sabse zyada jinse paisa aaya','No money in from parties in this period.':'Is samay mein parties se koi paisa nahi aaya.',
+    'Edited':'Badli gayi','Deleted':'Delete hui','Open their entries':'Unki entries kholein','Deleted entries':'Delete hui entries','⚠ No entries yet':'⚠ Abhi koi entry nahi','(removed party)':'(hatayi gayi party)','▲ new':'▲ naya','Last entry:':'Aakhri entry:',
+    'ℹ️ ▲▼ compare with the period before. Transfers between users are not counted as In or Out. Tap a user for details.':'ℹ️ ▲▼ pichhle samay se tulna hai. Users ke beech transfer Aaya ya Gaya mein nahi gine jaate. Poori jaankari ke liye user par tap karein.'});
+  HIP.unshift([/^(\d+)% of In$/,'आए का $1%'],[/^⚠ (\d+) days no entry$/,'⚠ $1 दिन से कोई एंट्री नहीं'],[/^Best day: (.+) · (₹[\d,.]+)$/,'सबसे अच्छा दिन: $1 · $2'],[/^Best month: (.+) · (₹[\d,.]+)$/,'सबसे अच्छा महीना: $1 · $2']);
+  HGP.unshift([/^(\d+)% of In$/,'Aaye ka $1%'],[/^⚠ (\d+) days no entry$/,'⚠ $1 din se koi entry nahi'],[/^Best day: (.+) · (₹[\d,.]+)$/,'Sabse achha din: $1 · $2'],[/^Best month: (.+) · (₹[\d,.]+)$/,'Sabse achha mahina: $1 · $2']);
+})();
 function actTextHg(a){
   var who=a.actor===me?'Aapne':'<b>'+esc(a.actor)+'</b> ne',ty=a.type==='in'?'Paisa Aaya':'Paisa Gaya',amt=a.amount!=null?' '+fmt(a.amount):'';
   var book=a.owner===a.actor?'':a.owner===me?' (aapki cashbook mein)':' (<b>'+esc(a.owner)+'</b> ki cashbook mein)';
@@ -2038,7 +2181,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
@@ -2055,6 +2198,7 @@ function bind(admin){
   if(tab==='search')bindSearch(admin);
   if(tab==='push')bindPush();
   if(tab==='ageing')bindAgeing(admin);
+  if(tab==='perf'&&admin)bindPerf();
   if(G('ag_go'))G('ag_go').onclick=function(){tab='ageing';agPid=null;render();window.scrollTo(0,0)};
   if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
