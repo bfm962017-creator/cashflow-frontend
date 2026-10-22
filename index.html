@@ -365,6 +365,12 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .cops{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:-2px 0 10px}.cops button{padding:8px 0;font-size:18px;font-weight:700;color:var(--pri);background:var(--card);border:1px solid var(--bd);border-radius:10px;min-height:40px}.cops .ceq{background:var(--pri);color:#fff;border-color:var(--pri)}
 .cdone{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;margin:-4px 0 10px;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}.cundo{margin-left:auto;border:0;background:none;padding:0 2px;color:var(--pri);font-weight:700;font-size:13px}
 .cres[hidden],.cdone[hidden]{display:none}
+/* Saving indicator */
+#busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
+#busy.on{opacity:1;animation:busy 1s linear infinite}
+@keyframes busy{from{background-position:-40% 0}to{background-position:140% 0}}
+.bspin{display:inline-block;width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;margin-right:8px;vertical-align:-2px;animation:spin .7s linear infinite}
+@media(prefers-reduced-motion:reduce){#busy.on{animation:none;background:#fbbf24}.bspin{animation:none}}
 </style>
 </head>
 <body>
@@ -411,9 +417,16 @@ var refresh=function(){if(form||sheet||psheet||bdirty)return;var a=document.acti
 var rid=function(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)};
 var uname=function(s){return String(s||'').trim().toLowerCase().replace(/[^a-z0-9_.-]/g,'')};
 
+// A thin bar at the top shows while anything is being saved (and while the list reloads right after),
+// so a slow network never looks like a tap that did nothing.
+var busyN=0,busyT=null,lastWrite=0;
+function busy(on){busyN=Math.max(0,busyN+(on?1:-1));var el=document.getElementById('busy');
+  if(!el){el=document.createElement('div');el.id='busy';el.setAttribute('aria-hidden','true');document.body.appendChild(el)}
+  clearTimeout(busyT);if(busyN>0)busyT=setTimeout(function(){el.className='on'},150);else el.className=''}
 async function api(m,u,b){
   var h={'Content-Type':'application/json'};if(token)h.Authorization='Bearer '+token;
-  var r=await fetch(API+'/api'+u,{method:m,headers:h,body:b?JSON.stringify(b):undefined}),d=null;
+  var w=m!=='GET'||(u==='/data'&&Date.now()-lastWrite<8000);if(m!=='GET')lastWrite=Date.now();if(w)busy(true);
+  try{var r=await fetch(API+'/api'+u,{method:m,headers:h,body:b?JSON.stringify(b):undefined}),d=null}finally{if(w)busy(false)}
   try{d=await r.json()}catch(e){}
   if(r.status===401&&token){signout();throw new Error('Session expired. Please sign in again.')}
   if(!r.ok){var er=new Error((d&&d.error)||'Request failed ('+r.status+')');er.status=r.status;throw er}
@@ -887,8 +900,9 @@ async function save(exit){
     if(f.picDirty){if(await savePhoto(f,f.id)){await load();form=null;toast('✓ '+L('Photo saved'));render()}return}
     form=null;render();return}
   var sv=document.getElementById('sx'),sc=document.getElementById('sc');if(sv)sv.disabled=true;if(sc)sc.disabled=true;
+  var sb=exit||!sc?sv:sc,sbh=sb&&sb.innerHTML;if(sb)sb.innerHTML='<span class="bspin"></span>'+L('Saving…');
   var picOk=true;
-  try{var row=f.id?await api('PUT','/tx/'+f.id,data):await api('POST','/tx',data);picOk=await savePhoto(f,f.id||row.id);await load()}catch(e){if(sv)sv.disabled=false;if(sc)sc.disabled=false;return seterr(e.message)}
+  try{var row=f.id?await api('PUT','/tx/'+f.id,data):await api('POST','/tx',data);picOk=await savePhoto(f,f.id||row.id);await load()}catch(e){if(sv)sv.disabled=false;if(sc)sc.disabled=false;if(sb)sb.innerHTML=sbh;return seterr(e.message)}
   err='';
   toast(picOk?'✓ '+savedText(data,!!f.id)+(f.pic&&f.picDirty?' · 📷':''):'⚠ '+L('Entry saved, but the photo did not upload. Open the entry to try again.'));
   if(exit||f.id){form=null}else{var d=f.date,uu=f.user,pp=f.party;form=newForm(f.type);form.pic=null;form.date=d;if(uu)form.user=uu;if(pp)form.party=pp;form.last={d:data,at:Date.now()}}
@@ -1415,8 +1429,8 @@ function bindTr(){
   if(G('tr_amt')){if(!trf)trf={to:G('tr_to').value,amount:'',date:G('tr_date').value,notes:G('tr_note').value};bindCalc('tr_amt',trf)}
   if(G('tr_go'))G('tr_go').onclick=async function(){var f=trf,cf=calcFinal(f);if(cf.err)return seterr(cf.err);var a=cf.amount;f.notes=withCalcNote(f.notes,cf.note).slice(0,200);
     if(!f.to)return seterr('Choose who to send to');if(!(a>0))return seterr('Enter a valid amount');
-    if(!confirm(L('Send '+fmt(a)+' to '+f.to+'?')))return;G('tr_go').disabled=true;
-    try{await api('POST','/transfers',{to:f.to,amount:a,date:f.date||today(),notes:f.notes});trf=null;err='';await load();toast('⇄ '+L('Sent to '+f.to+' · waiting for accept'));render()}catch(e){G('tr_go').disabled=false;seterr(e.message)}};
+    if(!confirm(L('Send '+fmt(a)+' to '+f.to+'?')))return;G('tr_go').disabled=true;var tgh=G('tr_go').innerHTML;G('tr_go').innerHTML='<span class="bspin"></span>'+L('Sending…');
+    try{await api('POST','/transfers',{to:f.to,amount:a,date:f.date||today(),notes:f.notes});trf=null;err='';await load();toast('⇄ '+L('Sent to '+f.to+' · waiting for accept'));render()}catch(e){G('tr_go').disabled=false;G('tr_go').innerHTML=tgh;seterr(e.message)}};
   var act=function(sel,path,ask,done){$(sel).forEach(function(b){b.onclick=async function(){var id=b.getAttribute(sel.slice(1,-1)),t=transfers.find(function(x){return x.id===id});
     if(ask&&!confirm(L(ask(t))))return;b.disabled=true;
     try{await api('POST','/transfers/'+id+'/'+path,path==='accept'?{time:hhmm(new Date())}:{});await load();toast(L(done(t)));render()}catch(e){b.disabled=false;alert(L(e.message));await load().catch(function(){});render()}}})};
