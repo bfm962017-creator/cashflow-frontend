@@ -378,6 +378,7 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .hchips{gap:6px;overflow:visible}.hchips .chps{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
 .hchips .chps::-webkit-scrollbar{display:none}.hchips .chps.end{-webkit-mask-image:none;mask-image:none}.hchips .chps .chip{flex:none;padding:6px 11px}.hchips>.chip{flex:none;padding:6px 9px}
 .chip.hpdf{background:#c2362b;border-color:#c2362b;color:#fff;font-weight:700}.chip.hxls{background:#12805c;border-color:#12805c;color:#fff;font-weight:700}.hchips>.chip:disabled{opacity:.45}.hchips .bspin{margin:0 6px}
+.eunote{display:block;font-size:12px;margin:-6px 2px 12px;line-height:1.4}.euchg{color:var(--pri);font-weight:600}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -698,7 +699,7 @@ function viewLogin(){
 function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
-  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(me)+' · '+(admin?'Admin':'User')+'</small></div></div><div class="hbtn"><button class="gh bell" id="srch" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'+bellHtml()+'</div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
+  var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(u.full||me)+' · '+(admin?'Admin':'User')+'</small></div></div><div class="hbtn"><button class="gh bell" id="srch" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'+bellHtml()+'</div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
   h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
@@ -709,7 +710,7 @@ function viewMain(){
 
 function menuHtml(admin){
   var an=menuAnim?' an':'';menuAnim=false;
-  var h='<div class="ov'+an+'" data-close></div><nav class="drw'+an+'" aria-label="Menu"><div class="dhd"><div class="av">'+esc((me||'?').charAt(0).toUpperCase())+'</div><div><b>'+esc(me)+'</b><small>'+(admin?'Admin':'User')+'</small></div></div><div class="dsec">Menu</div>';
+  var h='<div class="ov'+an+'" data-close></div><nav class="drw'+an+'" aria-label="Menu"><div class="dhd"><div class="av">'+esc((me||'?').charAt(0).toUpperCase())+'</div><div><b>'+esc(users[me]&&users[me].full||me)+'</b><small>'+(users[me]&&users[me].full?'@'+esc(me)+' · ':'')+(admin?'Admin':'User')+'</small></div></div><div class="dsec">Menu</div>';
   MENU.forEach(function(m){if(m.admin&&!admin||m.user&&admin)return;var n=m.id==='transfer'?trWaiting().length:0;h+='<button class="mi'+(tab===m.id?' on':'')+'" data-m="'+m.id+'"><span>'+m.icon+'</span>'+esc(m.label)+(n?'<span class="mbdg">'+n+'</span>':'')+'</button>'});
   return h+'<div class="dft">'+(inst?'<button class="mi" id="inst"><span>📲</span>Install app</button>':'')+'<button class="mi" id="out"><span>🚪</span>Sign out</button></div></nav>';
 }
@@ -730,6 +731,7 @@ function actText(a){
     case 'tx_restore':return who+' restored '+ty+amt+book;
     case 'user_add':return a.owner===me?who+' created your account':who+' created user <b>'+esc(a.owner)+'</b>';
     case 'user_password':return a.owner===me?who+' reset your password':who+' reset <b>'+esc(a.owner)+'</b>\'s password';
+    case 'user_rename':return who+' changed username <b>'+esc(a.notes)+'</b> → <b>'+esc(a.owner)+'</b>';
     case 'user_delete':return who+' deleted user <b>'+esc(a.owner)+'</b>';
     case 'settings':return who+' updated business settings';
     case 'lock':return a.amount<0?who+' turned off the entry lock':who+' locked entries older than '+(a.amount===0?'today':a.amount+' day'+(a.amount===1?'':'s'))+' for users';
@@ -746,7 +748,7 @@ function actText(a){
 }
 function actIcon(a){
   if(a.action==='tx_add')return a.type==='in'?['ci','+']:['co','−'];
-  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄'],lock:['','🔒'],tr_req:['','⏳'],tr_req_agree:['ci','✓'],tr_req_refuse:['co','✕'],tr_req_withdraw:['','↩'],login_block:['co','⚠']}[a.action]||['','•'];
+  return {tx_edit:['','✎'],tx_delete:['','🗑'],user_add:['','👤'],user_delete:['','👤'],user_password:['','🔑'],user_rename:['','✏️'],tx_restore:['','↺'],settings:['','⚙'],tr_send:['','⇄'],tr_accept:['ci','✓'],tr_reject:['co','✕'],tr_cancel:['','⇄'],lock:['','🔒'],tr_req:['','⏳'],tr_req_agree:['ci','✓'],tr_req_refuse:['co','✕'],tr_req_withdraw:['','↩'],login_block:['co','⚠']}[a.action]||['','•'];
 }
 function notifHtml(){
   var an=menuAnim?' an':'';menuAnim=false;
@@ -2079,6 +2081,19 @@ var HGP=[
 [/^(.+) added · (.+)$/,'$1 ne joda · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 se lena hai $2'],
 [/^(.* · )?last (.+)$/,function(m,a,b){return (a||'')+'aakhri '+b}]
 ];
+// Edit user texts.
+(function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
+  add(HI,{'Edit user':'यूज़र बदलें','Name':'नाम','Full name (optional)':'पूरा नाम (ज़रूरी नहीं)','Username (used to sign in)':'यूज़रनेम (साइन इन के लिए)','Letters, numbers, dot, dash and underscore only.':'सिर्फ़ अक्षर, अंक, डॉट, डैश और अंडरस्कोर।',
+    'New password':'नया पासवर्ड','Leave empty to keep the current one':'पुराना रखने के लिए खाली छोड़ें','Save changes':'बदलाव सेव करें','Saved':'सेव हो गया','Edit name, username or password':'नाम, यूज़रनेम या पासवर्ड बदलें',
+    'You stay signed in on this phone. Other phones signed in as you are signed out if you change the username or password.':'आप इस फ़ोन पर साइन इन रहेंगे। यूज़रनेम या पासवर्ड बदलने पर आपके बाकी फ़ोन साइन आउट हो जाएंगे।','Username is too long (max 32 characters)':'यूज़रनेम बहुत लंबा है (ज़्यादा से ज़्यादा 32 अक्षर)'});
+  add(HG,{'Edit user':'User badlein','Name':'Naam','Full name (optional)':'Poora naam (zaroori nahi)','Username (used to sign in)':'Username (sign in ke liye)','Letters, numbers, dot, dash and underscore only.':'Sirf letters, numbers, dot, dash aur underscore.',
+    'New password':'Naya password','Leave empty to keep the current one':'Purana rakhne ke liye khaali chhodein','Save changes':'Badlav save karein','Saved':'Save ho gaya','Edit name, username or password':'Naam, username ya password badlein',
+    'You stay signed in on this phone. Other phones signed in as you are signed out if you change the username or password.':'Aap is phone par sign in rahenge. Username ya password badalne par aapke baaki phone sign out ho jayenge.','Username is too long (max 32 characters)':'Username bahut lamba hai (max 32 akshar)'});
+  HIP.unshift([/^New username: (.+)$/,'नया यूज़रनेम: $1'],[/^If you change the username or password, (\S+) is signed out and signs in again with the new details\. Their entries, parties and transfers stay the same\.$/,'यूज़रनेम या पासवर्ड बदलने पर $1 साइन आउट हो जाएगा और नई जानकारी से फिर साइन इन करेगा। उसकी एंट्री, पार्टियां और ट्रांसफ़र वैसे ही रहेंगे।'],
+    [/^Change username "(.+)" to "(.+)"\? (.+)$/,function(m,a,b,c){return 'यूज़रनेम "'+a+'" को "'+b+'" करें? '+(/^You /.test(c)?'साइन इन के लिए आप नया यूज़रनेम इस्तेमाल करेंगे।':a+' को नए यूज़रनेम से साइन इन करना होगा।')}]);
+  HGP.unshift([/^New username: (.+)$/,'Naya username: $1'],[/^If you change the username or password, (\S+) is signed out and signs in again with the new details\. Their entries, parties and transfers stay the same\.$/,'Username ya password badalne par $1 sign out ho jayega aur nayi details se phir sign in karega. Uski entries, parties aur transfers waise hi rahenge.'],
+    [/^Change username "(.+)" to "(.+)"\? (.+)$/,function(m,a,b,c){return 'Username "'+a+'" ko "'+b+'" karein? '+(/^You /.test(c)?'Sign in ke liye aap naya username use karenge.':a+' ko naye username se sign in karna hoga.')}]);
+})();
 // User report texts (only added where the dictionaries do not have them yet).
 (function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
   add(HI,{'User report':'यूज़र रिपोर्ट','🏆 User report':'🏆 यूज़र रिपोर्ट','← User report':'← यूज़र रिपोर्ट','How much each user collected and spent':'हर यूज़र ने कितना लिया और कितना खर्च किया',
@@ -2108,6 +2123,7 @@ function actTextHg(a){
     case 'tx_restore':return who+' '+ty+amt+' wapas laaya'+book;
     case 'user_add':return a.owner===me?who+' aapka account banaya':who+' user <b>'+esc(a.owner)+'</b> banaya';
     case 'user_password':return a.owner===me?who+' aapka password badla':who+' <b>'+esc(a.owner)+'</b> ka password badla';
+    case 'user_rename':return who+' username badla <b>'+esc(a.notes)+'</b> → <b>'+esc(a.owner)+'</b>';
     case 'user_delete':return who+' user <b>'+esc(a.owner)+'</b> delete kiya';
     case 'settings':return who+' business settings badli';
     case 'lock':return a.amount<0?who+' entry lock band kiya':who+' users ke liye '+(a.amount===0?'aaj se pehle ki':a.amount+' din se purani')+' entries lock ki';
@@ -2132,6 +2148,7 @@ function actTextHi(a){
     case 'tx_restore':return who+' '+ty+amt+' वापस लाया'+book;
     case 'user_add':return a.owner===me?who+' आपका खाता बनाया':who+' यूज़र <b>'+esc(a.owner)+'</b> बनाया';
     case 'user_password':return a.owner===me?who+' आपका पासवर्ड बदला':who+' <b>'+esc(a.owner)+'</b> का पासवर्ड बदला';
+    case 'user_rename':return who+' ने यूज़रनेम बदला <b>'+esc(a.notes)+'</b> → <b>'+esc(a.owner)+'</b>';
     case 'user_delete':return who+' यूज़र <b>'+esc(a.owner)+'</b> हटाया';
     case 'settings':return who+' बिज़नेस सेटिंग्स बदलीं';
     case 'lock':return a.amount<0?who+' एंट्री लॉक बंद किया':who+' यूज़र के लिए '+(a.amount===0?'आज से पहले की':a.amount+' दिन से पुरानी')+' एंट्री लॉक कीं';
@@ -2175,13 +2192,22 @@ function usersHtml(){
   var h='<div class="uhd"><div><h2 style="margin:0">Users</h2><small class="mut">'+Object.keys(users).length+' logins · all-time balance</small></div><button class="p" id="u_add">+ Add user</button></div><div class="card ul">';
   Object.keys(users).sort(function(a,b){return (users[b].role==='admin')-(users[a].role==='admin')||a.localeCompare(b)}).forEach(function(k){
     var u=users[k],bal=0;txs.forEach(function(t){if(t.user===k)bal=r2(bal+(t.type==='in'?t.amount:-t.amount))});
-    h+='<div class="ur"><span class="av sm">'+esc(k.charAt(0).toUpperCase())+'</span><div class="un"><b>'+esc(k)+'</b><small class="mut">'+(u.role==='admin'?'Admin (you)':'User')+'</small></div>'+
+    h+='<div class="ur"><span class="av sm">'+esc((u.full||k).charAt(0).toUpperCase())+'</span><div class="un"><b>'+esc(u.full||k)+'</b><small class="mut">'+(u.full?'@'+esc(k)+' · ':'')+(u.role==='admin'?'Admin (you)':'User')+'</small></div>'+
       '<b class="ub'+(bal<0?' neg':'')+'">'+(bal<0?'−':'')+fmt(Math.abs(bal))+'</b>'+
-      '<button class="ib" data-rp="'+esc(k)+'" aria-label="Change password for '+esc(k)+'" title="Change password">🔑</button>'+
+      '<button class="ib" data-eu="'+esc(k)+'" aria-label="Edit '+esc(k)+'" title="Edit name, username or password">✏️</button>'+
       (u.role==='admin'?'<span class="ib"></span>':'<button class="ib" data-du="'+esc(k)+'" aria-label="Delete '+esc(k)+'" title="Delete user">🗑</button>')+'</div>';
   });
   h+='</div>';
-  if(sheet){var add=sheet.mode==='add';
+  if(sheet&&sheet.mode==='edit'){var eu=users[sheet.user]||{},self=sheet.user===me;
+    h+='<div class="ov" data-sx></div><div class="sheet" role="dialog" aria-label="Edit user"><h2>Edit user</h2>'+
+      '<label class="fl" for="eu_f">Name</label><input id="eu_f" maxlength="60" placeholder="Full name (optional)" value="'+esc(eu.full||'')+'" autocomplete="off">'+
+      '<label class="fl" for="eu_n">Username (used to sign in)</label><input id="eu_n" maxlength="32" value="'+esc(sheet.user)+'" autocapitalize="none" autocomplete="off" spellcheck="false">'+
+      '<small class="mut eunote" id="eu_hint">Letters, numbers, dot, dash and underscore only.</small>'+
+      '<label class="fl" for="nu_p">New password</label><input id="nu_p" type="password" placeholder="Leave empty to keep the current one" autocomplete="new-password">'+
+      '<p class="mut eunote">'+(self?'You stay signed in on this phone. Other phones signed in as you are signed out if you change the username or password.':'If you change the username or password, '+esc(sheet.user)+' is signed out and signs in again with the new details. Their entries, parties and transfers stay the same.')+'</p>'+
+      '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" data-sx>Cancel</button><button id="eu_save">Save changes</button></div></div>';
+  }
+  else if(sheet){var add=sheet.mode==='add';
     h+='<div class="ov" data-sx></div><div class="sheet" role="dialog" aria-label="'+(add?'Add user':'Change password')+'"><h2>'+(add?'Add user':'Change password')+'</h2>'+
       (add?'<input id="nu_n" placeholder="Username" autocapitalize="none" autocomplete="off">':'<p class="mut" style="margin:-6px 0 12px">For <b>'+esc(sheet.user)+'</b></p>')+
       '<input id="nu_p" type="password" placeholder="'+(add?'Password':'New password')+' (min 6 chars)" autocomplete="new-password">'+
@@ -2225,6 +2251,16 @@ function bind(admin){
   $('[data-e]').forEach(function(r){r.onclick=function(){openTx(r.dataset.e)}});
   if(G('u_add'))G('u_add').onclick=function(){sheet={mode:'add'};err='';render();G('nu_n').focus()};
   $('[data-rp]').forEach(function(b){b.onclick=function(){sheet={mode:'pw',user:b.dataset.rp};err='';render();G('nu_p').focus()}});
+  $('[data-eu]').forEach(function(b){b.onclick=function(){sheet={mode:'edit',user:b.dataset.eu};err='';render();G('eu_f').focus()}});
+  if(G('eu_n'))G('eu_n').oninput=function(){var v=uname(this.value),h=G('eu_hint');h.textContent=L(v===sheet.user?'Letters, numbers, dot, dash and underscore only.':v?'New username: '+v:'Enter a username');h.className='mut eunote'+(v&&v!==sheet.user?' euchg':'')};
+  if(G('eu_save'))G('eu_save').onclick=async function(){
+    var old=sheet.user,n=uname(G('eu_n').value),f=G('eu_f').value.trim(),p=G('nu_p').value,b=this;
+    if(!n)return seterr('Enter a username');if(p&&p.length<6)return seterr('Password must be at least 6 characters');
+    if(n!==old&&!confirm(L('Change username "'+old+'" to "'+n+'"? '+(old===me?'You will use the new username to sign in.':old+' must sign in with the new username.'))))return;
+    b.disabled=true;b.innerHTML='<span class="bspin"></span>'+L('Saving…');
+    try{var r=await api('PUT','/users/'+encodeURIComponent(old),{full_name:f,username:n,password:p||undefined});
+      if(r&&r.token){token=r.token;sset(token)}if(fuser===old)fuser=n;if(old===me)me=n;sheet=null;err='';await reload();toast('✓ '+L('Saved'))}
+    catch(e){b.disabled=false;b.textContent=L('Save changes');seterr(e.message)}};
   $('[data-sx]').forEach(function(b){b.onclick=function(){sheet=null;err='';render()}});
   if(G('nu_p'))G('nu_p').onkeydown=function(e){if(e.key==='Enter')G('u_save').click()};
   if(G('u_save'))G('u_save').onclick=async function(){
