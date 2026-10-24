@@ -382,6 +382,12 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .ptag{display:inline-block;max-width:100%;margin:5px 0 1px;padding:2px 10px;border-radius:999px;background:rgba(18,128,92,.1);color:var(--in);font-size:12.5px;font-weight:600;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
 .dvlk{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px 8px 8px 12px;margin-bottom:12px;min-height:44px;font-size:14px;color:var(--mut)}.dvlk span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dvlk .sm{flex:none}
 .dvs{font-size:13px;line-height:1.7;margin:8px 0 4px}.dvscr{width:100%;height:220px;margin-top:10px;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto}
+.exl .dh{margin:12px 0 6px;border-radius:8px}.exi{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px}.exi[data-exo]{cursor:pointer}
+.exh{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:4px}.exk{font-weight:700;font-size:12px;padding:2px 9px;border-radius:999px}
+.k-edit,.k-backdated{background:rgba(245,158,11,.15);color:#b45309}.k-delete{background:rgba(220,38,38,.1);color:#c2362b}.k-restore{background:rgba(34,163,122,.12);color:#12805c}.k-transfer{background:rgba(36,87,214,.1);color:#2457d6}.k-security{background:rgba(107,114,128,.15);color:var(--mut)}
+.exw{font-size:14px;margin-bottom:4px}.exx{font-size:14px;line-height:1.6}.exx.gone>span:first-child{text-decoration:line-through}.exx .ptag{margin:0 0 0 2px;font-size:11.5px;padding:0 8px}.exo{display:block;margin-top:6px;color:var(--pri);font-weight:600;font-size:12px}
+.exuh,.exu{display:grid;grid-template-columns:1fr 36px 36px 36px 40px;gap:4px;align-items:center;text-align:center}.exuh{font-size:12px;color:var(--mut);padding:0 0 6px;border-bottom:1px solid var(--bd)}.exuh span:first-child,.exu span{text-align:left}
+.exu{width:100%;background:none;border:0;border-bottom:1px dashed var(--bd);border-radius:0;padding:10px 0;color:var(--tx);font-size:14px;min-height:0}.exu span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -403,6 +409,7 @@ var MENU=[
   {id:'dash',icon:'📊',label:'Dashboard'},
   {id:'transfer',icon:'⇄',label:'Transfer',user:true},
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
+  {id:'exc',icon:'🚨',label:'Exception centre',admin:true},
   {id:'ageing',icon:'⏱',label:'Ageing report'},
   {id:'perf',icon:'🏆',label:'User report',admin:true},
   {id:'export',icon:'📤',label:'Export PDF / Excel'},
@@ -453,7 +460,7 @@ async function api(m,u,b){
 }
 function signout(){
   var tk=token;if(tk&&pushOk())pushSub().then(function(x){if(x)fetch(API+'/api/push/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({endpoint:x.endpoint})}).catch(function(){})}).catch(function(){});
-  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;exc={p:'7',from:'',to:'',user:'all',cat:'all'};excData=null;excKey='';driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];ctxs=d.ctxs||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -704,7 +711,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(u.full||me)+' · '+(admin?'Admin':'User')+'</small></div></div><div class="hbtn"><button class="gh bell" id="srch" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'+bellHtml()+'</div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():tab==='drive'&&admin?driveHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='exc'&&admin?excHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():tab==='drive'&&admin?driveHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -1399,6 +1406,64 @@ function bindPerf(){
   if(G('pf_del'))G('pf_del').onclick=function(){tab='deleted';delList=undefined;perf.u=null;render();window.scrollTo(0,0)};
   var ex=function(id,f){if(G(id))G(id).onclick=async function(){var b=G(id);b.disabled=true;try{await f()}catch(e){alert(L('Could not create the file. Check your internet and try again.'))}b.disabled=false}};
   ex('pf_pdf',perfPdf);ex('pf_xls',perfXls);
+}
+
+// ---- Exception centre (admin): edits, deletes, back-dated entries, transfer disputes, security ----
+// The server reads the full history (not just the last 100 notifications) for the chosen period and user.
+var exc={p:'7',from:'',to:'',user:'all',cat:'all'},excData=null,excKey='';
+var EXCP=[['today','Today'],['7','7 days'],['30','30 days'],['custom','Custom']];
+var EXCC=[['all','All','📋'],['edit','Edited','✎'],['delete','Deleted','🗑'],['restore','Restored','↺'],['backdated','Back-dated','⏪'],['transfer','Transfers','⇄'],['security','Security','🔐']];
+function excCat(it){return it.kind==='edit'||it.kind==='delete'||it.kind==='restore'||it.kind==='backdated'?it.kind:it.kind.indexOf('tr_')===0?'transfer':'security'}
+function excRange(){var td=today();if(exc.p==='today')return [td,td];if(exc.p==='7')return [addDays(td,-6),td];if(exc.p==='30')return [addDays(td,-29),td];
+  var a=exc.from||addDays(td,-6),b=exc.to||td;return a>b?[b,a]:[a,b]}
+function excLoad(){var R=excRange(),key=R[0]+'|'+R[1]+'|'+exc.user;if(excKey===key)return;excKey=key;excData=null;
+  api('GET','/exceptions?from='+R[0]+'&to='+R[1]+(exc.user!=='all'?'&user='+encodeURIComponent(exc.user):'')).then(function(r){if(excKey!==key)return;excData=r;if(tab==='exc')render()})
+    .catch(function(e){if(excKey!==key)return;excData={fail:e.message};if(tab==='exc')render()})}
+function excTx(t,strike){if(!t)return '';var inn=t.type==='in',pn=t.party?pName(t.party):'';
+  return '<div class="exx'+(strike?' gone':'')+'"><span class="'+(inn?'in':'out')+'">'+(inn?'+':'−')+fmt(t.amount)+'</span> '+esc(t.notes||'(no notes)')+'<small class="mut"> · dated '+esc(dshort(t.date||'')+' '+(t.date||'').slice(0,4))+'</small>'+(pn?' <span class="ptag">👤 '+esc(pn)+'</span>':'')+(t.transfer?' <span class="ttg">Transfer</span>':'')+'</div>'}
+function excItem(it){
+  var cat=excCat(it),c=EXCC.find(function(x){return x[0]===cat}),by=it.actor!==it.owner&&it.actor!=='system',t=it.tx,h;
+  var who='<b>'+esc(it.owner)+'</b>'+(by?' <small class="mut">· by '+esc(it.actor)+'</small>':''),tag='<span class="exk k-'+cat+'"><span>'+c[2]+'</span> <span>'+c[1]+'</span></span>';
+  h='<div class="exi"'+(t&&t.live?' data-exo="'+esc(t.id)+'"':'')+'><div class="exh">'+tag+'<span class="mut">'+esc(t12(hhmm(new Date(it.ts))))+'</span></div>';
+  if(it.kind==='edit'){h+='<div class="exw">'+who+' edited an entry</div>'+excTx(t)+
+    (it.changes?'<div class="chg">'+Object.keys(HF).filter(function(f){return it.changes[f]}).map(function(f){var x=it.changes[f];return '<div><span>'+HF[f]+'</span><p><span class="old">'+histVal(f,x[0])+'</span> → <span class="new">'+histVal(f,x[1])+'</span></p></div>'}).join('')+'</div>':'')}
+  else if(it.kind==='delete')h+='<div class="exw">'+who+' deleted an entry</div>'+excTx(t,!t.live);
+  else if(it.kind==='restore')h+='<div class="exw">'+who+' restored an entry</div>'+excTx(t);
+  else if(it.kind==='backdated'){var late=Math.round((Date.parse(ymd(new Date(it.ts)))-Date.parse(t.date))/864e5);
+    h+='<div class="exw">'+who+' added an entry <b class="out">'+late+' days</b> back-dated</div>'+excTx(t,!t.live)+(t.live?'':'<small class="mut">This entry was deleted later.</small>')}
+  else h+='<div class="exw">'+actText({actor:it.actor,owner:it.owner,action:it.kind,type:it.act.type,amount:it.act.amount,prev:it.act.prev,notes:it.act.notes})+'</div>';
+  if(t&&t.live)h+='<small class="exo">Open entry & full history ›</small>';
+  return h+'</div>'}
+function excHtml(){
+  excLoad();var R=excRange();
+  var h='<div class="uhd"><div><h2 style="margin:0">🚨 Exception centre</h2><small class="mut">Edits, deletes and anything unusual, by user</small></div></div>';
+  h+='<div class="sgc" style="margin-bottom:8px">'+EXCP.map(function(p){return '<button data-exp="'+p[0]+'" class="'+(exc.p===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
+  if(exc.p==='custom')h+='<div class="pfd"><input type="date" id="ex_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="ex_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
+  h+='<select id="ex_user" style="margin-bottom:8px"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option value="'+esc(k)+'"'+(exc.user===k?' selected':'')+'>'+esc(users[k].full?users[k].full+' (@'+k+')':k)+'</option>'}).join('')+'</select>';
+  h+='<small class="mut pfr">'+esc(perfRangeTxt(R))+'</small>';
+  if(!excData)return h+'<div class="card"><p class="mut">Loading…</p></div>';
+  if(excData.fail)return h+'<div class="card"><p class="lkr">'+esc(excData.fail)+'</p></div>';
+  var all=excData.items,N={all:all.length};all.forEach(function(it){var c=excCat(it);N[c]=(N[c]||0)+1});
+  // Per user summary (only in the All users view)
+  if(exc.user==='all'){var U={};all.forEach(function(it){var u=it.owner;if(!users[u]&&it.kind==='login_block')return;var x=U[u]=U[u]||{edit:0,delete:0,backdated:0,n:0};x.n++;if(x[it.kind]!=null)x[it.kind]++});
+    var ul=Object.keys(U).sort(function(a,b){return U[b].n-U[a].n});
+    if(ul.length)h+='<div class="card ul"><div class="exuh"><span>User</span><span>✎</span><span>🗑</span><span>⏪</span><span>All</span></div>'+ul.map(function(u){var x=U[u];
+      return '<button class="exu" data-exu="'+esc(u)+'"><span>'+esc(users[u]&&users[u].full||u)+'</span><b class="'+(x.edit?'b2t':'mut')+'">'+x.edit+'</b><b class="'+(x['delete']?'b3t':'mut')+'">'+x['delete']+'</b><b class="'+(x.backdated?'b2t':'mut')+'">'+x.backdated+'</b><b>'+x.n+'</b></button>'}).join('')+'<small class="mut">Tap a user to see only their activity.</small></div>'}
+  h+='<div class="schips">'+EXCC.filter(function(c){return c[0]==='all'||N[c[0]]}).map(function(c){return '<button class="chip'+(exc.cat===c[0]?' on':'')+'" data-exc="'+c[0]+'"><span>'+c[2]+'</span> <span>'+c[1]+'</span> <b>'+(N[c[0]]||0)+'</b></button>'}).join('')+'</div>';
+  var list=exc.cat==='all'?all:all.filter(function(it){return excCat(it)===exc.cat});
+  if(!list.length)return h+'<div class="card dempty"><b>Nothing unusual 🎉</b><p class="mut">No edits, deletes or other exceptions'+(exc.user!=='all'?' for '+esc(exc.user):'')+' in this period.</p></div>';
+  var last='';h+='<div class="exl">';
+  list.forEach(function(it){var k=ymd(new Date(it.ts));if(k!==last){last=k;h+='<div class="dh">'+esc(dlabel(k))+'</div>'}h+=excItem(it)});
+  h+='</div>'+(excData.more?'<p class="mut" style="font-size:12px">Showing the latest 1,500. Pick a shorter period or one user to see the rest.</p>':'');
+  return h}
+function bindExc(){
+  var G=function(i){return document.getElementById(i)};
+  app.querySelectorAll('[data-exp]').forEach(function(b){b.onclick=function(){exc.p=b.dataset.exp;render()}});
+  app.querySelectorAll('[data-exc]').forEach(function(b){b.onclick=function(){exc.cat=b.dataset.exc;render()}});
+  app.querySelectorAll('[data-exu]').forEach(function(b){b.onclick=function(){exc.user=b.dataset.exu;exc.cat='all';render();window.scrollTo(0,0)}});
+  app.querySelectorAll('[data-exo]').forEach(function(b){b.onclick=function(){var id=b.dataset.exo;if(!txs.some(function(t){return t.id===id}))return toast(L('This entry is no longer in the books'));tab='tx';openTx(id)}});
+  if(G('ex_user'))G('ex_user').onchange=function(e){exc.user=e.target.value;exc.cat='all';render()};
+  ['ex_from','ex_to'].forEach(function(id){if(G(id))G(id).onchange=function(e){if(!e.target.value)return;var R=excRange();exc.from=id==='ex_from'?e.target.value:R[0];exc.to=id==='ex_to'?e.target.value:R[1];render()}});
 }
 
 // ---- Push notifications on this phone ----
@@ -2150,6 +2215,19 @@ var HGP=[
 [/^(.+) added · (.+)$/,'$1 ne joda · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 se lena hai $2'],
 [/^(.* · )?last (.+)$/,function(m,a,b){return (a||'')+'aakhri '+b}]
 ];
+// Exception centre texts.
+(function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
+  add(HI,{'Exception centre':'अपवाद केंद्र','🚨 Exception centre':'🚨 अपवाद केंद्र','Edits, deletes and anything unusual, by user':'बदलाव, हटाई एंट्री और कुछ भी असामान्य, यूज़र के हिसाब से','7 days':'7 दिन','30 days':'30 दिन',
+    'Edited':'बदली गई','Deleted':'हटाई गई','Restored':'वापस लाई गई','Back-dated':'पुरानी तारीख','Transfers':'ट्रांसफ़र','Security':'सुरक्षा','User':'यूज़र','All':'सब',
+    'Tap a user to see only their activity.':'सिर्फ़ उसकी गतिविधि देखने के लिए यूज़र पर टैप करें।','Nothing unusual 🎉':'कुछ भी असामान्य नहीं 🎉','Open entry & full history ›':'एंट्री और पूरा इतिहास खोलें ›',
+    'edited an entry':'ने एंट्री बदली','deleted an entry':'ने एंट्री हटाई','restored an entry':'ने एंट्री वापस लाई','This entry was deleted later.':'यह एंट्री बाद में हटा दी गई।','This entry is no longer in the books':'यह एंट्री अब हिसाब में नहीं है'});
+  add(HG,{'Exception centre':'Exception centre','🚨 Exception centre':'🚨 Exception centre','Edits, deletes and anything unusual, by user':'Badlav, delete aur kuch bhi alag, user ke hisaab se','7 days':'7 din','30 days':'30 din',
+    'Edited':'Badli gayi','Deleted':'Delete hui','Restored':'Wapas aayi','Back-dated':'Purani date','Transfers':'Transfers','Security':'Security','User':'User','All':'Sab',
+    'Tap a user to see only their activity.':'Sirf unki activity dekhne ke liye user par tap karein.','Nothing unusual 🎉':'Kuch bhi alag nahi 🎉','Open entry & full history ›':'Entry aur poori history kholein ›',
+    'edited an entry':'ne entry badli','deleted an entry':'ne entry delete ki','restored an entry':'ne entry wapas laayi','This entry was deleted later.':'Yeh entry baad mein delete ho gayi.','This entry is no longer in the books':'Yeh entry ab hisaab mein nahi hai'});
+  HIP.unshift([/^dated (.+)$/,'तारीख $1'],[/^· by (.+)$/,'· $1 ने किया'],[/^(\d+) days$/,'$1 दिन'],[/^No edits, deletes or other exceptions(?: for (.+))? in this period\.$/,function(m,u){return (u?u+' के लिए ':'')+'इस समय में कोई बदलाव, हटाई एंट्री या अपवाद नहीं।'}]);
+  HGP.unshift([/^dated (.+)$/,'date $1'],[/^· by (.+)$/,'· $1 ne kiya'],[/^(\d+) days$/,'$1 din'],[/^No edits, deletes or other exceptions(?: for (.+))? in this period\.$/,function(m,u){return (u?u+' ke liye ':'')+'is samay mein koi badlav, delete ya exception nahi.'}]);
+})();
 // Drive backup texts.
 (function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
   add(HI,{'Change':'बदलें','Your password (to confirm the change)':'आपका पासवर्ड (बदलाव पक्का करने के लिए)','Admin password':'एडमिन पासवर्ड','Wrong password':'गलत पासवर्ड','Enter your password to change this':'इसे बदलने के लिए अपना पासवर्ड डालें',
@@ -2309,7 +2387,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='exc')excKey='';if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
@@ -2329,6 +2407,7 @@ function bind(admin){
   if(tab==='push')bindPush();
   if(tab==='ageing')bindAgeing(admin);
   if(tab==='perf'&&admin)bindPerf();
+  if(tab==='exc'&&admin)bindExc();
   if(G('ag_go'))G('ag_go').onclick=function(){tab='ageing';agPid=null;render();window.scrollTo(0,0)};
   if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
