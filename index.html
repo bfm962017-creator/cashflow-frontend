@@ -380,6 +380,7 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .chip.hpdf{background:#c2362b;border-color:#c2362b;color:#fff;font-weight:700}.chip.hxls{background:#12805c;border-color:#12805c;color:#fff;font-weight:700}.hchips>.chip:disabled{opacity:.45}.hchips .bspin{margin:0 6px}
 .eunote{display:block;font-size:12px;margin:-6px 2px 12px;line-height:1.4}.euchg{color:var(--pri);font-weight:600}
 .ptag{display:inline-block;max-width:100%;margin:5px 0 1px;padding:2px 10px;border-radius:999px;background:rgba(18,128,92,.1);color:var(--in);font-size:12.5px;font-weight:600;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
+.dvlk{display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:8px 8px 8px 12px;margin-bottom:12px;min-height:44px;font-size:14px;color:var(--mut)}.dvlk span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dvlk .sm{flex:none}
 .dvs{font-size:13px;line-height:1.7;margin:8px 0 4px}.dvscr{width:100%;height:220px;margin-top:10px;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre;overflow:auto}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
@@ -452,7 +453,7 @@ async function api(m,u,b){
 }
 function signout(){
   var tk=token;if(tk&&pushOk())pushSub().then(function(x){if(x)fetch(API+'/api/push/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({endpoint:x.endpoint})}).catch(function(){})}).catch(function(){});
-  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;driveCfg=null;driveScr=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];ctxs=d.ctxs||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -1497,7 +1498,8 @@ function bindMail(){
 // ---- Google Drive backup (admin) ----
 // A small Google Apps Script in the admin's own Google account receives the nightly Excel backup and
 // saves it in a "Cashflow Backups" folder. The server keeps the link and sends the file at 11 PM.
-var driveCfg=null,driveScr=false;
+var driveCfg=null,driveScr=false,driveEdit=false;
+function dvShort(u){return u.replace(/^(https:\/\/script\.google\.com\/(?:a\/[^/]+\/)?macros\/s\/.{6}).*(.{6}\/exec)$/,'$1…$2')}
 var DKEEP=[[30,'30 days'],[60,'60 days'],[90,'90 days'],[180,'6 months'],[365,'1 year'],[0,'Keep all']];
 function kb(n){return n>=1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'}
 function driveWhen(ts){var d=new Date(ts),k=ymd(d);return dshort(k)+' '+k.slice(0,4)+' · '+t12(hhmm(d))}
@@ -1510,10 +1512,16 @@ function driveHtml(){
   h+='<div class="card"><div class="mst '+(good?'ok':'no')+'">'+(good?'✓ Connected':on?'⚠ Connected, but the last backup failed':'○ Not connected yet')+'</div>';
   if(good)h+='<p class="mut dvs">Folder: <b>Cashflow Backups</b>'+(c.folder?' · <a href="'+esc(c.folder)+'" target="_blank" rel="noopener">Open in Drive ↗</a>':'')+'<br>Last backup: <b>'+esc(lo?driveWhen(lo.ts):c.last)+'</b><br>Every night at <b>11:00 PM</b></p>';
   if(c.err)h+='<p class="lkr">⚠ '+esc(c.err)+'</p>';
-  h+='<label class="fl" for="dv_url">Drive link (Web app link from Google)</label><input id="dv_url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(c.url)+'">'+
+  // Once connected the link is locked; changing it (or how long backups are kept) needs the admin's password.
+  if(on&&!driveEdit){var kl=(DKEEP.find(function(k){return k[0]===c.keep})||[0,'Keep all'])[1];
+    h+='<label class="fl">Drive link (Web app link from Google)</label><div class="dvlk"><span>🔒 '+esc(dvShort(c.url))+'</span><button class="sm" id="dv_unlock">Change</button></div>'+
+      '<label class="fl">Keep backups for</label><div class="dvlk"><span>🔒 '+esc(kl)+'</span></div>'+
+      '<div class="err" id="e">'+esc(err)+'</div><button class="p" id="dv_now" style="width:100%">☁️ Back up now</button>'+
+      '<p class="mut" style="font-size:12px;margin:8px 0 0">The link is locked so it cannot be changed by mistake. Tap Change and enter your password to edit it.</p></div>'}
+  else{h+='<label class="fl" for="dv_url">Drive link (Web app link from Google)</label><input id="dv_url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://script.google.com/macros/s/…/exec" value="'+esc(c.url)+'">'+
     '<label class="fl" for="dv_keep">Keep backups for</label><select id="dv_keep">'+DKEEP.map(function(k){return '<option value="'+k[0]+'"'+(c.keep===k[0]?' selected':'')+'>'+k[1]+'</option>'}).join('')+'</select>'+
-    '<div class="err" id="e">'+esc(err)+'</div><button class="p" id="dv_save" style="width:100%">'+(on?'Save':'Save and test')+'</button>'+
-    (on?'<button class="lt" id="dv_now" style="width:100%;margin-top:8px">☁️ Back up now</button>':'')+'</div>';
+    (on?'<label class="fl" for="dv_pw">Your password (to confirm the change)</label><input id="dv_pw" type="password" autocomplete="current-password" placeholder="Admin password">':'')+
+    '<div class="err" id="e">'+esc(err)+'</div>'+(on?'<div class="bbtn"><button class="lt" id="dv_cancel">Cancel</button><button class="p" id="dv_save">Save</button></div>':'<button class="p" id="dv_save" style="width:100%">Save and test</button>')+'</div>'}
   if(c.log&&c.log.length)h+='<div class="ssec">Recent backups</div><div class="card ul">'+c.log.map(function(x){return '<div class="agu"><span>'+(x.ok?'<b class="in">✓</b> ':'<b class="out">✕</b> ')+esc(driveWhen(x.ts))+(x.ok?'':'<br><small class="mut">'+esc(x.msg)+'</small>')+'</span><span class="mut">'+(x.ok?kb(x.bytes):'')+'</span></div>'}).join('')+'</div>';
   var steps='<ol class="msteps"><li>Tap <b>Copy script</b> below</li><li>Open <a href="https://script.google.com/home/projects/create" target="_blank" rel="noopener"><b>script.google.com</b> ↗</a> (signed in to the Google account you want the backups in). A new project opens</li>'+
     '<li>Select everything in the editor, delete it, <b>paste</b> the script and tap 💾 <b>Save</b></li><li>Tap <b>Deploy → New deployment</b> → ⚙ <b>Web app</b>. Set <b>Execute as: Me</b> and <b>Who has access: Anyone</b> → <b>Deploy</b></li>'+
@@ -1525,12 +1533,15 @@ function driveHtml(){
   return h;
 }
 function bindDrive(){
-  var G=function(i){return document.getElementById(i)};if(!G('dv_save'))return;
+  var G=function(i){return document.getElementById(i)};if(!G('dv_copy'))return;
+  if(G('dv_unlock'))G('dv_unlock').onclick=function(){driveEdit=true;err='';render();G('dv_pw').focus()};
+  if(G('dv_cancel'))G('dv_cancel').onclick=function(){driveEdit=false;err='';render()};
   var run=async function(bt,label){bt.disabled=true;bt.innerHTML='<span class="bspin"></span>'+L('Backing up…');
     try{driveCfg=await api('POST','/drive/run');err='';toast('✓ '+L('Backup saved in Google Drive'));render()}
     catch(e){driveCfg=await api('GET','/drive').catch(function(){return driveCfg});err=e.message;render()}};
-  G('dv_save').onclick=async function(){var bt=this,prev=driveCfg.url,url=G('dv_url').value.trim();bt.disabled=true;
-    try{driveCfg=await api('PUT','/drive',{url:url,keep:+G('dv_keep').value});err='';if(url&&url!==prev){render();return run(G('dv_save'))}toast('✓ '+L('Saved'));render()}
+  if(G('dv_save'))G('dv_save').onclick=async function(){var bt=this,prev=driveCfg.url,url=G('dv_url').value.trim();
+    if(prev&&!url&&!confirm(L('Turn off Google Drive backup? Nightly backups will stop.')))return;bt.disabled=true;
+    try{driveCfg=await api('PUT','/drive',{url:url,keep:+G('dv_keep').value,password:G('dv_pw')?G('dv_pw').value:undefined});err='';driveEdit=false;if(url&&url!==prev){render();return run(G('dv_now')||G('dv_save'))}toast('✓ '+L('Saved'));render()}
     catch(e){bt.disabled=false;seterr(e.message)}};
   if(G('dv_now'))G('dv_now').onclick=function(){run(this)};
   G('dv_copy').onclick=async function(){try{await navigator.clipboard.writeText(driveCfg.script);toast('📋 '+L('Script copied'))}catch(e){driveScr=true;render();var t=G('dv_scr');if(t){t.focus();t.select()}}};
@@ -2141,13 +2152,15 @@ var HGP=[
 ];
 // Drive backup texts.
 (function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
-  add(HI,{'Google Drive backup':'Google Drive बैकअप','☁️ Google Drive backup':'☁️ Google Drive बैकअप','Daily Excel backup in your own Google Drive':'आपके अपने Google Drive में रोज़ Excel बैकअप','✓ Connected':'✓ जुड़ा हुआ है',
+  add(HI,{'Change':'बदलें','Your password (to confirm the change)':'आपका पासवर्ड (बदलाव पक्का करने के लिए)','Admin password':'एडमिन पासवर्ड','Wrong password':'गलत पासवर्ड','Enter your password to change this':'इसे बदलने के लिए अपना पासवर्ड डालें',
+    'The link is locked so it cannot be changed by mistake. Tap Change and enter your password to edit it.':'लिंक लॉक है ताकि गलती से न बदले। बदलने के लिए बदलें दबाएं और अपना पासवर्ड डालें।','Turn off Google Drive backup? Nightly backups will stop.':'Google Drive बैकअप बंद करें? रात के बैकअप रुक जाएंगे।','Google Drive backup':'Google Drive बैकअप','☁️ Google Drive backup':'☁️ Google Drive बैकअप','Daily Excel backup in your own Google Drive':'आपके अपने Google Drive में रोज़ Excel बैकअप','✓ Connected':'✓ जुड़ा हुआ है',
     '⚠ Connected, but the last backup failed':'⚠ जुड़ा है, पर पिछला बैकअप नहीं हुआ','○ Not connected yet':'○ अभी जुड़ा नहीं है','Drive link (Web app link from Google)':'Drive लिंक (Google का Web app लिंक)','Keep backups for':'बैकअप कितने दिन रखें',
     'Save and test':'सेव और टेस्ट करें','☁️ Back up now':'☁️ अभी बैकअप लें','Recent backups':'हाल के बैकअप','How to set up again':'फिर से सेट करने का तरीका','How to set up (once, about 5 minutes)':'सेट करने का तरीका (एक बार, लगभग 5 मिनट)',
     '📋 Copy script':'📋 स्क्रिप्ट कॉपी करें','Show script':'स्क्रिप्ट दिखाएं','Hide script':'स्क्रिप्ट छिपाएं','Backing up…':'बैकअप हो रहा है…','Backup saved in Google Drive':'बैकअप Google Drive में सेव हो गया','Script copied':'स्क्रिप्ट कॉपी हो गई',
     '30 days':'30 दिन','60 days':'60 दिन','90 days':'90 दिन','6 months':'6 महीने','1 year':'1 साल','Keep all':'सब रखें','Every night at':'हर रात','Folder:':'फ़ोल्डर:','Last backup:':'पिछला बैकअप:','Open in Drive ↗':'Drive में खोलें ↗',
     'The script has a secret code, so only your app can save files with it. Keep it private. If a nightly backup fails, you get a notification.':'स्क्रिप्ट में एक गुप्त कोड है, इसलिए सिर्फ़ आपका ऐप इससे फ़ाइल सेव कर सकता है। इसे किसी से शेयर न करें। रात का बैकअप न होने पर आपको नोटिफ़िकेशन मिलेगा।'});
-  add(HG,{'Google Drive backup':'Google Drive backup','☁️ Google Drive backup':'☁️ Google Drive backup','Daily Excel backup in your own Google Drive':'Aapke apne Google Drive mein roz Excel backup','✓ Connected':'✓ Juda hua hai',
+  add(HG,{'Change':'Badlein','Your password (to confirm the change)':'Aapka password (badlav pakka karne ke liye)','Admin password':'Admin password','Wrong password':'Galat password','Enter your password to change this':'Ise badalne ke liye apna password daalein',
+    'The link is locked so it cannot be changed by mistake. Tap Change and enter your password to edit it.':'Link lock hai taaki galti se na badle. Badalne ke liye Badlein dabayein aur apna password daalein.','Turn off Google Drive backup? Nightly backups will stop.':'Google Drive backup band karein? Raat ke backup ruk jayenge.','Google Drive backup':'Google Drive backup','☁️ Google Drive backup':'☁️ Google Drive backup','Daily Excel backup in your own Google Drive':'Aapke apne Google Drive mein roz Excel backup','✓ Connected':'✓ Juda hua hai',
     '⚠ Connected, but the last backup failed':'⚠ Juda hai, par pichhla backup nahi hua','○ Not connected yet':'○ Abhi juda nahi hai','Drive link (Web app link from Google)':'Drive link (Google ka Web app link)','Keep backups for':'Backup kitne din rakhein',
     'Save and test':'Save aur test karein','☁️ Back up now':'☁️ Abhi backup lein','Recent backups':'Haal ke backup','How to set up again':'Phir se set karne ka tareeka','How to set up (once, about 5 minutes)':'Set karne ka tareeka (ek baar, lagbhag 5 minute)',
     '📋 Copy script':'📋 Script copy karein','Show script':'Script dikhayein','Hide script':'Script chhupayein','Backing up…':'Backup ho raha hai…','Backup saved in Google Drive':'Backup Google Drive mein save ho gaya','Script copied':'Script copy ho gayi',
@@ -2296,7 +2309,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
