@@ -375,6 +375,9 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .pfb{height:6px;border-radius:3px;background:var(--bd);margin:6px 0 4px 24px;overflow:hidden}.pfb i{display:block;height:100%;background:var(--cin);border-radius:3px}
 .pfu .ags{margin-left:24px}.pfl{font-weight:600}.pup{color:#12805c}.pdn{color:#c2362b}
 .pfs{display:block;width:100%;height:90px;margin:10px 0 4px}.pfs rect{fill:var(--cin)}.pfx{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-bottom:6px}
+.hchips{gap:6px;overflow:visible}.hchips .chps{display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 82%,transparent);mask-image:linear-gradient(90deg,#000 82%,transparent)}
+.hchips .chps::-webkit-scrollbar{display:none}.hchips .chps.end{-webkit-mask-image:none;mask-image:none}.hchips .chps .chip{flex:none;padding:6px 11px}.hchips>.chip{flex:none;padding:6px 9px}
+.chip.hpdf{background:#c2362b;border-color:#c2362b;color:#fff;font-weight:700}.chip.hxls{background:#12805c;border-color:#12805c;color:#fff;font-weight:700}.hchips>.chip:disabled{opacity:.45}.hchips .bspin{margin:0 6px}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -1024,7 +1027,8 @@ function txHtml(admin){
   var xt=admin&&fuser==='all',ti=0,to=0;list.forEach(function(t){if(xt&&t.transfer)return;t.type==='in'?ti=r2(ti+t.amount):to=r2(to+t.amount)});
   var P=[['all','All'],['daily','Daily'],['weekly','Weekly'],['monthly','Monthly'],['yearly','Yearly']];
   var h='<div class="sum3"><div><small>Total In</small><b class="in">'+fmt(ti)+'</b></div><div><small>Total Out</small><b class="out">'+fmt(to)+'</b></div><div><small>Balance</small><b'+(ti-to<0?' class="out"':'')+'>'+sgnb(ti-to)+'</b></div></div>';
-  h+='<div class="chips">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'<button class="chip" id="sbtn">🔍</button></div>';
+  h+='<div class="chips hchips"><div class="chps">'+P.map(function(x){return '<button class="chip '+(period===x[0]?'on':'')+'" data-p="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div><button class="chip" id="sbtn" aria-label="Search">🔍</button>'+
+    '<button class="chip hpdf" id="h_pdf"'+(list.length?'':' disabled')+'>PDF</button><button class="chip hxls" id="h_xls"'+(list.length?'':' disabled')+'>Excel</button></div>';
   if(admin)h+='<div class="pad" style="padding-bottom:0"><select id="e_user"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option'+(fuser===k?' selected':'')+'>'+esc(k)+'</option>'}).join('')+'</select></div>';
   h+='<div class="ch"><span>Details</span><span class="in">Cash In</span><span class="out">Cash Out</span></div>';
   if(!list.length)h+='<p class="mut pad">No entries found.</p>';
@@ -1781,6 +1785,18 @@ async function exportXls(admin){
   ws.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0};
   var buf=await wb.xlsx.writeBuffer();saveFile(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),exName('xlsx'));
 }
+// PDF / Excel from the home screen: the same statement as Export, for the period and user on screen.
+function homeRange(){var td=today(),end=txs.reduce(function(m,t){return t.date&&t.date>m?t.date:m},td),wk=new Date();wk.setDate(wk.getDate()-((wk.getDay()+6)%7));
+  if(period==='daily')return [td,td];if(period==='weekly')return [ymd(wk),end];if(period==='monthly')return [td.slice(0,8)+'01',td.slice(0,7)+'-31'<end?td.slice(0,7)+'-31':end];
+  if(period==='yearly')return [td.slice(0,5)+'01-01',td.slice(0,4)+'-12-31'<end?td.slice(0,4)+'-12-31':end];return [exRange('all')[0],end]}
+async function homeExport(admin,fn){var keep=[exf,ext,exu],r=homeRange();exf=r[0];ext=r[1];exu=fuser;try{await fn(admin)}finally{exf=keep[0];ext=keep[1];exu=keep[2]}}
+function bindHomeExport(admin){
+  var G=function(i){return document.getElementById(i)},c=app.querySelector('.chps');
+  if(c){var on=c.querySelector('.on'),fade=function(){c.classList.toggle('end',c.scrollLeft+c.clientWidth>=c.scrollWidth-2)};
+    if(on)c.scrollLeft=on.offsetLeft-c.offsetLeft-(c.clientWidth-on.offsetWidth)/2;fade();c.onscroll=fade}
+  [['h_pdf',exportPdf,'PDF'],['h_xls',exportXls,'Excel']].forEach(function(x){var b=G(x[0]);if(b)b.onclick=async function(){b.disabled=true;b.innerHTML='<span class="bspin"></span>';
+    try{await homeExport(admin,x[1])}catch(e){alert(L(e.message||'Could not create the file. Check your internet and try again.'))}b.disabled=false;b.textContent=L(x[2])}});
+}
 function bindExport(admin){
   var G=function(i){return document.getElementById(i)},$=function(x){return app.querySelectorAll(x)};if(!G('x_pdf'))return;
   $('[data-ex]').forEach(function(b){b.onclick=function(){var r=exRange(b.dataset.ex);exf=r[0];ext=r[1];render()}});
@@ -2185,6 +2201,7 @@ function bind(admin){
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
+  if(tab==='tx')bindHomeExport(users[me]&&users[me].role==='admin');
   if(G('e_user'))G('e_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_user'))G('d_user').onchange=function(e){fuser=e.target.value;render()};
   if(G('d_range'))G('d_range').onchange=function(e){range=e.target.value;sumAll=false;render()};
