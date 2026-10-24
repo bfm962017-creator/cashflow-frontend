@@ -379,6 +379,7 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .hchips .chps::-webkit-scrollbar{display:none}.hchips .chps.end{-webkit-mask-image:none;mask-image:none}.hchips .chps .chip{flex:none;padding:6px 11px}.hchips>.chip{flex:none;padding:6px 9px}
 .chip.hpdf{background:#c2362b;border-color:#c2362b;color:#fff;font-weight:700}.chip.hxls{background:#12805c;border-color:#12805c;color:#fff;font-weight:700}.hchips>.chip:disabled{opacity:.45}.hchips .bspin{margin:0 6px}
 .eunote{display:block;font-size:12px;margin:-6px 2px 12px;line-height:1.4}.euchg{color:var(--pri);font-weight:600}
+.ptag{display:inline-block;max-width:100%;margin:5px 0 1px;padding:2px 10px;border-radius:999px;background:rgba(18,128,92,.1);color:var(--in);font-size:12.5px;font-weight:600;line-height:1.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:top}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -1038,7 +1039,7 @@ function txHtml(admin){
   list.forEach(function(t){
     if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
     var inn=t.type==='in';
-    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.transfer?'<span class="ttg">Transfer</span>':'')+(isLocked(t.date)?' <span class="lki" title="Locked">🔒</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+(t.party&&pName(t.party)?' · 👤 '+esc(pName(t.party)):'')+'</div></div>'+
+    h+='<div class="er" data-e="'+esc(t.id)+'"><div class="el"><div class="t">'+esc(nt(t)||'(no notes)')+(t.photo?' <span class="pclip" title="Has bill photo">📎</span>':'')+(t.transfer?'<span class="ttg">Transfer</span>':'')+(isLocked(t.date)?' <span class="lki" title="Locked">🔒</span>':'')+(t.edited?'<span class="edt">✎ Edited</span>':'')+'</div>'+(t.desc?'<div class="d">'+esc(t.desc)+'</div>':'')+(t.party&&pName(t.party)?'<div><span class="ptag">👤 '+esc(pName(t.party))+'</span></div>':'')+'<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+esc(t.user):'')+'</div></div>'+
     (inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'<div class="eb">Bal '+fn(B[t.id])+'</div></div>';
   });
   // The admin supervises: reviews, corrects and deletes entries, but does not add any.
@@ -1135,8 +1136,8 @@ function sResHtml(admin){
     S.ents.slice(0,smore).forEach(function(t){
       if(t.date!==last){last=t.date;h+='<div class="dh">'+esc(dlabel(t.date))+'</div>'}
       var inn=t.type==='in',pn=t.party?pName(t.party):'';
-      h+='<div class="er" data-se="'+esc(t.id)+'"><div class="el"><div class="t">'+(hl(nt(t),P.text)||'(no notes)')+(t.transfer?'<span class="ttg">Transfer</span>':'')+'</div>'+(t.desc?'<div class="d">'+hl(t.desc,P.text)+'</div>':'')+
-        '<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+hl(t.user,P.text):'')+(pn?' · 👤 '+hl(pn,P.text):'')+'</div></div>'+(inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'</div>'});
+      h+='<div class="er" data-se="'+esc(t.id)+'"><div class="el"><div class="t">'+(hl(nt(t),P.text)||'(no notes)')+(t.transfer?'<span class="ttg">Transfer</span>':'')+'</div>'+(t.desc?'<div class="d">'+hl(t.desc,P.text)+'</div>':'')+(pn?'<div><span class="ptag">👤 '+hl(pn,P.text)+'</span></div>':'')+
+        '<div class="tm">'+esc(t12(tm(t)))+(admin?' · '+hl(t.user,P.text):'')+'</div></div>'+(inn?'<div class="ei">'+fn(t.amount)+'</div>':'<div class="eo">'+fn(t.amount)+'</div>')+'</div>'});
     h+='</div>';
     if(n>smore)h+='<button class="lt" id="s_more" style="width:100%;margin-top:8px">Show '+Math.min(50,n-smore)+' more</button>';
     h+='<div class="bbtn" style="margin-top:10px"><button class="gpdf" id="s_pdf">⬇ PDF</button><button class="gxls" id="s_xls">⬇ Excel</button></div>';
