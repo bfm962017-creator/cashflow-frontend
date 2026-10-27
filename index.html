@@ -366,11 +366,11 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .cdone{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:8px 12px;margin:-4px 0 10px;font-size:13px;color:var(--mut);display:flex;align-items:center;gap:6px}.cundo{margin-left:auto;border:0;background:none;padding:0 2px;color:var(--pri);font-weight:700;font-size:13px}
 .cres[hidden],.cdone[hidden]{display:none}
 /* User report */
-.pfd{display:flex;align-items:center;gap:8px;margin-bottom:8px}.pfd input{flex:1;min-width:0;margin:0}
-.pfr{display:block;margin:0 2px 10px}
-.pft{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}.pft span,.pfv span{min-width:0}.pft small,.pfv small{display:block;font-size:11px;color:var(--mut)}.pft b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.urd{display:flex;align-items:center;gap:8px;margin-bottom:8px}.urd input{flex:1;min-width:0;margin:0}
+.urr{display:block;margin:0 2px 10px}
+.urt{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}.urt span,.pfv span{min-width:0}.urt small,.pfv small{display:block;font-size:11px;color:var(--mut)}.urt b{display:block;font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pfu{padding:10px 0;border-bottom:1px solid var(--bd);cursor:pointer}.pfu:last-child{border:0}
-.pfh{display:flex;align-items:center;gap:8px}.pfh .un{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pfn{font-weight:700;color:var(--mut);width:16px;text-align:center}.pfa{font-size:12px;font-weight:700;white-space:nowrap}
+.pfh{display:flex;align-items:center;gap:8px}.pfh .un{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.urn{font-weight:700;color:var(--mut);width:16px;text-align:center}.pfa{font-size:12px;font-weight:700;white-space:nowrap}
 .pfv{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:6px 0 0 24px}.pfv b{display:block;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pfb{height:6px;border-radius:3px;background:var(--bd);margin:6px 0 4px 24px;overflow:hidden}.pfb i{display:block;height:100%;background:var(--cin);border-radius:3px}
 .pfu .ags{margin-left:24px}.pfl{font-weight:600}.pup{color:#12805c}.pdn{color:#c2362b}
@@ -388,6 +388,12 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .exw{font-size:14px;margin-bottom:4px}.exx{font-size:14px;line-height:1.6}.exx.gone>span:first-child{text-decoration:line-through}.exx .ptag{margin:0 0 0 2px;font-size:11.5px;padding:0 8px}.exo{display:block;margin-top:6px;color:var(--pri);font-weight:600;font-size:12px}
 .exuh,.exu{display:grid;grid-template-columns:1fr 36px 36px 36px 40px;gap:4px;align-items:center;text-align:center}.exuh{font-size:12px;color:var(--mut);padding:0 0 6px;border-bottom:1px solid var(--bd)}.exuh span:first-child,.exu span{text-align:left}
 .exu{width:100%;background:none;border:0;border-bottom:1px dashed var(--bd);border-radius:0;padding:10px 0;color:var(--tx);font-size:14px;min-height:0}.exu span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Long words (UPI refs, links, numbers) wrap inside the details column instead of widening the page */
+.er>.el{min-width:0;overflow-wrap:anywhere}
+.bbtn>button{min-width:0}.le>div:first-child{min-width:0;overflow-wrap:anywhere}
+.chg div{grid-template-columns:86px minmax(0,1fr)}.chg p,.exx,.exw,.agu>span,.ra .un,.un b,.un small{min-width:0;overflow-wrap:anywhere}
+/* Amounts never break across lines; fitNums() shrinks the few that are too wide for their box */
+.ei,.eo,.le .o,.le .g{white-space:nowrap;overflow:hidden;text-overflow:clip;min-width:0}.pft div{min-width:0}.pft b{display:block;white-space:nowrap;overflow:hidden}.sum3 div{min-width:0}.sum3 b{display:block;overflow:hidden}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -1336,14 +1342,14 @@ function perfHtml(){
   var Ls=perfList(),T={i:0,o:0,n:0};Ls.forEach(function(s){T.i=r2(T.i+s.i);T.o=r2(T.o+s.o);T.n+=s.n});
   var h='<div class="uhd"><div><h2 style="margin:0">🏆 User report</h2><small class="mut">How much each user collected and spent</small></div></div>';
   h+='<div class="sgc" style="margin-bottom:8px">'+PERFP.map(function(p){return '<button data-pfp="'+p[0]+'" class="'+(perf.p===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
-  if(perf.p==='custom')h+='<div class="pfd"><input type="date" id="pf_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="pf_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
-  h+='<small class="mut pfr">'+esc(perfRangeTxt(R))+'</small>';
-  h+='<div class="card"><small class="mut">Total · all users</small><div class="pft"><span><small>In</small><b class="in">'+fmt(T.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(T.o)+'</b></span><span><small>Net</small><b class="'+(T.i-T.o<0?'out':'')+'">'+sgn(r2(T.i-T.o))+'</b></span></div>'+
+  if(perf.p==='custom')h+='<div class="urd"><input type="date" id="pf_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="pf_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
+  h+='<small class="mut urr">'+esc(perfRangeTxt(R))+'</small>';
+  h+='<div class="card"><small class="mut">Total · all users</small><div class="urt"><span><small>In</small><b class="in">'+fmt(T.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(T.o)+'</b></span><span><small>Net</small><b class="'+(T.i-T.o<0?'out':'')+'">'+sgn(r2(T.i-T.o))+'</b></span></div>'+
     '<small class="mut">'+T.n+' entr'+(T.n===1?'y':'ies')+'</small></div>';
   if(!Ls.length)return h+'<div class="card dempty"><b>No users yet</b><p class="mut">Add users in Manage users. Their entries show up here.</p></div>';
   h+='<div class="sgc" style="margin-bottom:10px">'+PERFS.map(function(p){return '<button data-pfs="'+p[0]+'" class="'+(perf.sort===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
   h+='<div class="card ul">'+Ls.map(function(s,i){var pc=T.i?Math.round(s.i/T.i*100):0,idle=s.lastTs?Math.floor((Date.now()-s.lastTs)/864e5):null,k=perf.sort;
-    return '<div class="pfu" data-pfu="'+esc(s.u)+'"><div class="pfh"><span class="pfn">'+(i+1)+'</span><span class="av sm">'+esc(s.u.charAt(0).toUpperCase())+'</span><b class="un">'+esc(s.u)+(users[s.u]?'':' <small class="mut">(removed)</small>')+'</b><span class="pfa">'+perfArrow(perfVal(s,k),perfVal(s.prev,k))+'</span></div>'+
+    return '<div class="pfu" data-pfu="'+esc(s.u)+'"><div class="pfh"><span class="urn">'+(i+1)+'</span><span class="av sm">'+esc(s.u.charAt(0).toUpperCase())+'</span><b class="un">'+esc(s.u)+(users[s.u]?'':' <small class="mut">(removed)</small>')+'</b><span class="pfa">'+perfArrow(perfVal(s,k),perfVal(s.prev,k))+'</span></div>'+
       '<div class="pfv"><span><small>In</small><b class="in">'+fmt(s.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(s.o)+'</b></span><span><small>Net</small><b class="'+(s.net<0?'out':'')+'">'+sgn(s.net)+'</b></span></div>'+
       '<div class="pfb"><i style="width:'+pc+'%"></i></div>'+
       '<div class="ags"><span>'+pc+'% of In</span><span>'+s.n+' entr'+(s.n===1?'y':'ies')+'</span><span>'+s.np+' part'+(s.np===1?'y':'ies')+'</span>'+
@@ -1353,7 +1359,7 @@ function perfHtml(){
 }
 function perfDetail(R){
   var s=perfStats(perf.u,R[0],R[1]),c=perfChg&&perfChg[perf.u],h='<div class="pbar"><button class="sm" id="pf_back">← User report</button><span class="un"><b>'+esc(perf.u)+'</b><small class="mut">'+esc(perfRangeTxt(R))+'</small></span></div>';
-  h+='<div class="card"><div class="pft"><span><small>In</small><b class="in">'+fmt(s.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(s.o)+'</b></span><span><small>Net</small><b class="'+(s.net<0?'out':'')+'">'+sgn(s.net)+'</b></span></div>'+
+  h+='<div class="card"><div class="urt"><span><small>In</small><b class="in">'+fmt(s.i)+'</b></span><span><small>Out</small><b class="out">'+fmt(s.o)+'</b></span><span><small>Net</small><b class="'+(s.net<0?'out':'')+'">'+sgn(s.net)+'</b></span></div>'+
     '<div class="agu"><span>Transfers sent</span><b>'+fmt(s.to)+'</b></div><div class="agu"><span>Transfers received</span><b>'+fmt(s.ti)+'</b></div>'+
     '<div class="agu"><span>Cash in hand now</span><b class="'+(s.bal<0?'out':'')+'">'+sgn(s.bal)+'</b></div></div>';
   // Day by day (month by month for long ranges)
@@ -1438,9 +1444,9 @@ function excHtml(){
   excLoad();var R=excRange();
   var h='<div class="uhd"><div><h2 style="margin:0">🚨 Exception centre</h2><small class="mut">Edits, deletes and anything unusual, by user</small></div></div>';
   h+='<div class="sgc" style="margin-bottom:8px">'+EXCP.map(function(p){return '<button data-exp="'+p[0]+'" class="'+(exc.p===p[0]?'on':'')+'">'+p[1]+'</button>'}).join('')+'</div>';
-  if(exc.p==='custom')h+='<div class="pfd"><input type="date" id="ex_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="ex_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
+  if(exc.p==='custom')h+='<div class="urd"><input type="date" id="ex_from" value="'+esc(R[0])+'" max="'+today()+'"><span class="mut">to</span><input type="date" id="ex_to" value="'+esc(R[1])+'" max="'+today()+'"></div>';
   h+='<select id="ex_user" style="margin-bottom:8px"><option value="all">All users</option>'+Object.keys(users).sort().map(function(k){return '<option value="'+esc(k)+'"'+(exc.user===k?' selected':'')+'>'+esc(users[k].full?users[k].full+' (@'+k+')':k)+'</option>'}).join('')+'</select>';
-  h+='<small class="mut pfr">'+esc(perfRangeTxt(R))+'</small>';
+  h+='<small class="mut urr">'+esc(perfRangeTxt(R))+'</small>';
   if(!excData)return h+'<div class="card"><p class="mut">Loading…</p></div>';
   if(excData.fail)return h+'<div class="card"><p class="lkr">'+esc(excData.fail)+'</p></div>';
   var all=excData.items,N={all:all.length};all.forEach(function(it){var c=excCat(it);N[c]=(N[c]||0)+1});
@@ -2381,6 +2387,9 @@ function usersHtml(){
 }
 
 function openTx(id){var t=txs.find(function(x){return x.id===id});if(t){form={id:t.id,user:t.user,ts:t.ts,type:t.type,date:t.date,time:tm(t),amount:String(t.amount),notes:nt(t),desc:t.desc||'',party:t.party||null,hadPic:!!t.photo,transfer:t.transfer||null,odate:t.date};err='';render()}}
+// Big amounts (₹1,00,00,000+) can be wider than their column on small phones: step the font down until they fit.
+function fitNums(){app.querySelectorAll('.ei,.eo,.sum3 b,.le .o,.le .g,.pft b').forEach(function(e){if(e.scrollWidth<=e.clientWidth+1){if(e.style.fontSize)e.style.fontSize='';else return}
+  if(e.scrollWidth<=e.clientWidth+1)return;var fs=parseFloat(getComputedStyle(e).fontSize);while(e.scrollWidth>e.clientWidth+1&&fs>9){fs-=.5;e.style.fontSize=fs+'px'}})}
 function bind(admin){
   var $=function(x){return app.querySelectorAll(x)},G=function(i){return document.getElementById(i)};
   G('out')&&(G('out').onclick=function(){closeMenu();signout()});
@@ -2408,6 +2417,7 @@ function bind(admin){
   if(tab==='ageing')bindAgeing(admin);
   if(tab==='perf'&&admin)bindPerf();
   if(tab==='exc'&&admin)bindExc();
+  fitNums();
   if(G('ag_go'))G('ag_go').onclick=function(){tab='ageing';agPid=null;render();window.scrollTo(0,0)};
   if(tab==='backup')bindBackup(admin);
   if(tab==='dash')dashCharts();
@@ -2438,7 +2448,7 @@ function bind(admin){
 }
 
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();inst=e;refresh()});
-var rsz;window.addEventListener('resize',function(){clearTimeout(rsz);rsz=setTimeout(function(){if(tab==='dash'&&me&&!form)dashCharts()},150)});
+var rsz;window.addEventListener('resize',function(){clearTimeout(rsz);rsz=setTimeout(function(){if(tab==='dash'&&me&&!form)dashCharts();if(me)fitNums()},150)});
 window.addEventListener('popstate',function(){if(menu){menu=false;render()}});
 document.addEventListener('keydown',function(e){if(e.key==='Escape')closeMenu()});
 window.addEventListener('appinstalled',function(){inst=null;refresh()});
