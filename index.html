@@ -394,6 +394,15 @@ mark{background:#fff1a8;color:inherit;border-radius:3px;padding:0 1px}
 .chg div{grid-template-columns:86px minmax(0,1fr)}.chg p,.exx,.exw,.agu>span,.ra .un,.un b,.un small{min-width:0;overflow-wrap:anywhere}
 /* Amounts never break across lines; fitNums() shrinks the few that are too wide for their box */
 .ei,.eo,.le .o,.le .g{white-space:nowrap;overflow:hidden;text-overflow:clip;min-width:0}.pft div{min-width:0}.pft b{display:block;white-space:nowrap;overflow:hidden}.sum3 div{min-width:0}.sum3 b{display:block;overflow:hidden}
+/* Ask Khata */
+.akl{display:flex;flex-direction:column;gap:8px}.akm{display:flex}.akm>div{max-width:86%;padding:9px 12px;border-radius:14px;font-size:14.5px;line-height:1.5;overflow-wrap:anywhere}
+.akm.me{justify-content:flex-end}.akm.me>div{background:var(--pri);color:#fff;border-bottom-right-radius:4px}
+.akm.ai>div{background:var(--card);border:1px solid var(--bd);border-bottom-left-radius:4px}.akli{display:block;padding-left:14px;position:relative}.akli:before{content:'•';position:absolute;left:3px}
+.akb{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.akb .chip{font-size:13px;padding:5px 10px;min-height:0;background:var(--bg);color:var(--pri);border:1px solid var(--bd)}
+.akd{margin-top:8px;padding:10px;border:1px dashed var(--bd);border-radius:10px;background:var(--bg)}.akd .bbtn{margin-top:8px}.akd .bbtn button{padding:9px 6px}.akok{margin-top:6px;color:var(--in);font-weight:700}
+.akin{display:flex;gap:8px;align-items:center}.akin input{flex:1;min-width:0;margin:0}.akin .p{padding:11px 16px;border-radius:10px}.akin .ib[hidden]{display:none}
+.aktyp{display:flex;gap:4px;padding:12px 14px!important}.aktyp i{width:7px;height:7px;border-radius:50%;background:var(--mut);animation:akb 1s infinite ease-in-out}.aktyp i:nth-child(2){animation-delay:.15s}.aktyp i:nth-child(3){animation-delay:.3s}
+@keyframes akb{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
 /* Saving indicator */
 #busy{position:fixed;top:0;left:0;right:0;height:3px;z-index:100;pointer-events:none;opacity:0;transition:opacity .2s;background:linear-gradient(90deg,transparent,#fbbf24,transparent) no-repeat;background-size:40% 100%}
 #busy.on{opacity:1;animation:busy 1s linear infinite}
@@ -413,6 +422,7 @@ var app=document.getElementById('app'),mailCfg=null,pf={k:'all',from:'',to:''},c
 var MENU=[
   {id:'tx',icon:'📒',label:'Entries'},
   {id:'dash',icon:'📊',label:'Dashboard'},
+  {id:'ask',icon:'💬',label:'Ask Khata'},
   {id:'transfer',icon:'⇄',label:'Transfer',user:true},
   {id:'users',icon:'🔑',label:'Manage users',admin:true},
   {id:'exc',icon:'🚨',label:'Exception centre',admin:true},
@@ -466,7 +476,7 @@ async function api(m,u,b){
 }
 function signout(){
   var tk=token;if(tk&&pushOk())pushSub().then(function(x){if(x)fetch(API+'/api/push/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({endpoint:x.endpoint})}).catch(function(){})}).catch(function(){});
-  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;exc={p:'7',from:'',to:'',user:'all',cat:'all'};excData=null;excKey='';driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;chat=null;chatBusy=false;aiCfgV=null;aiSet=false;aiEdit=false;if(micOn){try{micOn.stop()}catch(e){}micOn=null}exc={p:'7',from:'',to:'',user:'all',cat:'all'};excData=null;excKey='';driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];ctxs=d.ctxs||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -717,7 +727,7 @@ function viewMain(){
   var u=users[me],admin=u.role==='admin';
   var tabs=[['tx','Entries'],['dash','Dashboard']];tabs.push(['books',admin?'People':'Parties']);
   var h='<div class="hdr"><div class="ht"><div style="display:flex;gap:10px;align-items:center"><button class="gh mbtn" id="menu" aria-label="Menu">☰</button>'+bizHead()+'<small>'+esc(u.full||me)+' · '+(admin?'Admin':'User')+'</small></div></div><div class="hbtn"><button class="gh bell" id="srch" aria-label="Search"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></button>'+bellHtml()+'</div></div><div class="nav">'+tabs.map(function(t){return '<button data-t="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div></div>';
-  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='exc'&&admin?excHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():tab==='drive'&&admin?driveHtml():admin?usersHtml():dashHtml(admin))+'</div>';
+  h+=tab==='tx'?'<div class="tx-pg">'+txHtml(admin)+'</div>':'<div class="pad">'+(tab==='search'?searchHtml(admin):tab==='push'?pushHtml(admin):tab==='ageing'?ageingHtml(admin):tab==='perf'&&admin?perfHtml():tab==='ask'?askHtml():tab==='exc'&&admin?excHtml():tab==='dash'?dashHtml(admin):tab==='books'?peopleHtml(admin):tab==='export'?exportHtml(admin):tab==='lang'?langHtml():tab==='deleted'?deletedHtml(admin):tab==='transfer'&&!admin?trHtml():tab==='backup'?backupHtml(admin):tab==='settings'&&admin?settingsHtml():tab==='lock'&&admin?lockHtml():tab==='mail'&&admin?mailHtml():tab==='drive'&&admin?driveHtml():admin?usersHtml():dashHtml(admin))+'</div>';
   if(menu==='menu')h+=menuHtml(admin);else if(menu==='notif')h+=notifHtml();
   badge(unread());
   document.body.style.overflow=menu?'hidden':'';
@@ -1472,6 +1482,84 @@ function bindExc(){
   ['ex_from','ex_to'].forEach(function(id){if(G(id))G(id).onchange=function(e){if(!e.target.value)return;var R=excRange();exc.from=id==='ex_from'?e.target.value:R[0];exc.to=id==='ex_to'?e.target.value:R[1];render()}});
 }
 
+// ---- Ask Khata: chat with your cash book (Google Gemini through the server) ----
+// The chat is kept on this phone only (per signed-in person). The server answers from the books with
+// the person's own permissions; a proposed entry is saved only when they tap Save here.
+var chat=null,chatBusy=false,aiCfgV=null,aiSet=false,aiEdit=false,micOn=null;
+function chatKey(){return 'cf_chat_'+me}
+function chatLoad(){if(chat)return;chat=[];try{chat=JSON.parse(localStorage.getItem(chatKey())||'[]')||[]}catch(e){chat=[]}}
+function chatSave(){try{localStorage.setItem(chatKey(),JSON.stringify(chat.slice(-40)))}catch(e){}}
+function mdLite(s){return esc(s).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').split('\n').map(function(l){var m=l.match(/^\s*(?:[-•*]|\d+\.)\s+(.*)$/);return m?'<span class="akli">'+m[1]+'</span>':l}).join('<br>').replace(/<\/span><br>/g,'</span>')}
+function chatMsg(m,i){
+  if(m.role==='user')return '<div class="akm me"><div>'+esc(m.text)+'</div></div>';
+  var h='<div class="akm ai"><div>'+(m.err?'<span class="lkr">⚠ '+esc(m.text)+'</span>':mdLite(m.text));
+  var d=m.draft;
+  if(d){var inn=d.type==='in';h+='<div class="akd"><b class="'+(inn?'in':'out')+'">'+(inn?'+ ':'− ')+fmt(d.amount)+'</b> <span>'+esc(inn?'Cash In':'Cash Out')+'</span><br><small class="mut">'+esc(d.notes||'(no notes)')+' · '+esc(dshort(d.date)+' '+d.date.slice(0,4))+(d.partyName?' · 👤 '+esc(d.partyName):'')+'</small>'+
+    (m.saved?'<div class="akok">✓ Saved</div>':'<div class="bbtn"><button class="gi" data-aksave="'+i+'">✓ Save</button><button class="lt" data-akedit="'+i+'">✎ Edit</button></div>')+'</div>'}
+  var b=[];(m.parties||[]).forEach(function(p){b.push('<button class="chip" data-akp="'+esc(p.id)+'">👤 '+esc(p.name)+' ›</button>')});
+  if(m.search)b.push('<button class="chip" data-aks="'+esc(m.search)+'">🔍 See entries ›</button>');
+  if(m.exc)b.push('<button class="chip" data-m="exc">🚨 Exception centre ›</button>');
+  if(b.length)h+='<div class="akb">'+b.join('')+'</div>';
+  return h+'</div></div>'}
+function aiSettingsHtml(){
+  var c=aiCfgV;if(!c)return '<div class="card"><p class="mut">Loading…</p></div>';
+  var h='<div class="card"><b>⚙️ Ask Khata settings</b><div class="mst '+(c.hasKey?'ok':'no')+'" style="margin-top:8px">'+(c.hasKey?'✓ Gemini key saved <small>('+esc(c.keyHint)+')</small>':'○ No Gemini key yet')+'</div>';
+  if(!c.hasKey)h+='<ol class="msteps"><li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"><b>aistudio.google.com/apikey</b> ↗</a> and sign in with Google</li><li>Tap <b>Create API key</b> (free, no card needed)</li><li>Copy the key, paste it below and tap <b>Save</b></li></ol>';
+  if(!c.keyFromEnv){if(c.hasKey&&!aiEdit)h+='<label class="fl">Gemini API key</label><div class="dvlk"><span>🔒 '+esc(c.keyHint)+'</span><button class="sm" id="ai_unlock">Change</button></div>';
+    else h+='<label class="fl" for="ai_key">Gemini API key</label><input id="ai_key" type="password" autocomplete="off" placeholder="AIza…">'+(c.hasKey?'<label class="fl" for="ai_pw">Your password (to change the key)</label><input id="ai_pw" type="password" autocomplete="current-password">':'')}
+  h+='<label class="fl" for="ai_model">Model</label><select id="ai_model">'+c.models.map(function(m){return '<option'+(c.model===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select>'+
+    '<label class="fl" for="ai_lim">Questions per person per day</label><input id="ai_lim" type="number" inputmode="numeric" min="5" max="500" value="'+c.limit+'">'+
+    '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" id="ai_test"'+(c.hasKey?'':' disabled')+'>Test</button><button class="p" id="ai_save">Save</button></div>'+
+    '<p class="mut" style="font-size:12px;margin:10px 0 0">ℹ️ Free Gemini has a daily limit. On the free plan Google may use what is sent to improve its products. Ask Khata sends only each question and the few numbers needed to answer it, never your whole books.</p></div>';
+  return h}
+function askHtml(){
+  chatLoad();var admin=users[me]&&users[me].role==='admin';
+  if(admin&&aiCfgV===null){aiCfgV=false;api('GET','/ai').then(function(r){aiCfgV=r;if(!r.hasKey)aiSet=true;if(tab==='ask')render()}).catch(function(){aiCfgV=null})}
+  var h='<div class="uhd"><div><h2 style="margin:0">💬 Ask Khata</h2><small class="mut">Ask about your money in English, Hindi or Hinglish</small></div>'+
+    '<div style="display:flex;gap:6px">'+(chat.length?'<button class="ib" id="ak_clear" title="Clear chat" aria-label="Clear chat">🗑</button>':'')+(admin?'<button class="ib" id="ak_set" title="Settings" aria-label="Settings">⚙️</button>':'')+'</div></div>';
+  if(admin&&aiSet)h+=aiSettingsHtml();
+  h+='<div class="akl" id="ak_list">';
+  if(!chat.length){var sug=admin?['Today\'s summary for all users','Who owes us the most?','What did users edit this week?','Overdue parties']:['Aaj ka hisaab','Who owes me the most?','Is mahine ka kharcha kitna hua?','Mera cash in hand kitna hai?','Petrol 500 cash out'];
+    h+='<div class="akm ai"><div>👋 '+esc(admin?'Ask me anything about the business: totals, parties, users or changes.':'Ask me about your entries, parties and cash. I can also prepare a new entry for you to save.')+'<div class="akb">'+sug.map(function(s){return '<button class="chip" data-akq="'+esc(s)+'">'+esc(s)+'</button>'}).join('')+'</div></div></div>'}
+  h+=chat.map(chatMsg).join('');
+  if(chatBusy)h+='<div class="akm ai"><div class="aktyp"><i></i><i></i><i></i></div></div>';
+  h+='</div><div style="height:96px"></div><div class="fixb akin"><button class="ib" id="ak_mic" aria-label="Speak" title="Speak"'+(window.SpeechRecognition||window.webkitSpeechRecognition?'':' hidden')+'>'+(micOn?'⏹':'🎤')+'</button>'+
+    '<input id="ak_q" placeholder="Type a question…" autocomplete="off" enterkeyhint="send" maxlength="500"'+(chatBusy?' disabled':'')+'><button class="p" id="ak_send" aria-label="Send"'+(chatBusy?' disabled':'')+'>➤</button></div>';
+  return h}
+async function askSend(q){
+  q=String(q||'').trim();if(!q||chatBusy)return;
+  chat.push({role:'user',text:q});chatBusy=true;chatSave();render();askScroll();
+  try{var r=await api('POST','/ai/chat',{lang:lang,messages:chat.filter(function(m){return !m.err}).slice(-12).map(function(m){return {role:m.role,text:m.text}})});
+    chat.push({role:'model',text:r.text,draft:r.draft||null,parties:r.parties||[],search:r.search||null,exc:!!r.exc})}
+  catch(e){chat.push({role:'model',text:e.message,err:true})}
+  chatBusy=false;chatSave();if(tab==='ask'){render();askScroll()}}
+function askScroll(){setTimeout(function(){window.scrollTo(0,document.body.scrollHeight)},30)}
+function bindAsk(admin){
+  var G=function(i){return document.getElementById(i)};if(!G('ak_q'))return;
+  var q=G('ak_q');q.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();askSend(q.value)}};G('ak_send').onclick=function(){askSend(q.value)};
+  app.querySelectorAll('[data-akq]').forEach(function(b){b.onclick=function(){askSend(b.dataset.akq)}});
+  if(G('ak_clear'))G('ak_clear').onclick=function(){if(confirm(L('Clear this chat?'))){chat=[];chatSave();render()}};
+  if(G('ak_set'))G('ak_set').onclick=function(){aiSet=!aiSet;aiEdit=false;err='';render()};
+  app.querySelectorAll('[data-akp]').forEach(function(b){b.onclick=function(){tab='books';partyId=b.dataset.akp;puser=null;pf={k:'all',from:'',to:''};render();window.scrollTo(0,0)}});
+  app.querySelectorAll('[data-aks]').forEach(function(b){b.onclick=function(){sq=b.dataset.aks;sdr='all';suser='all';smore=50;tab='search';render();window.scrollTo(0,0)}});
+  app.querySelectorAll('[data-aksave]').forEach(function(b){b.onclick=async function(){var m=chat[+b.dataset.aksave],d=m.draft;b.disabled=true;b.innerHTML='<span class="bspin"></span>'+L('Saving…');
+    try{await api('POST','/tx',{type:d.type,amount:d.amount,date:d.date,time:hhmm(new Date()),notes:d.notes,desc:'',party:d.party||null});m.saved=true;chatSave();await reload();toast('✓ '+L('Saved'))}
+    catch(e){b.disabled=false;b.textContent=L('✓ Save');alert(e.message)}}});
+  app.querySelectorAll('[data-akedit]').forEach(function(b){b.onclick=function(){var m=chat[+b.dataset.akedit],d=m.draft;form=newForm(d.type);form.amount=String(d.amount);form.notes=d.notes;form.date=d.date;if(d.party)form.party=d.party;m.saved=true;chatSave();tab='tx';err='';render()}});
+  // Voice: the phone's own speech recognition fills the box (Hindi for हिंदी, Indian English otherwise).
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(G('ak_mic')&&SR)G('ak_mic').onclick=function(){if(micOn){micOn.stop();return}
+    var r=new SR();r.lang=lang==='hi'?'hi-IN':'en-IN';r.interimResults=true;micOn=r;render();
+    r.onresult=function(e){var t='';for(var i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;var box=G('ak_q');if(box)box.value=t;if(e.results[e.results.length-1].isFinal){r.stop();askSend(t)}};
+    r.onerror=function(){micOn=null;render()};r.onend=function(){micOn=null;if(tab==='ask'&&!chatBusy)render()};try{r.start()}catch(e){micOn=null;render()}};
+  // Admin settings
+  if(G('ai_unlock'))G('ai_unlock').onclick=function(){aiEdit=true;err='';render();G('ai_key').focus()};
+  if(G('ai_save'))G('ai_save').onclick=async function(){var bt=this,b={model:G('ai_model').value,limit:+G('ai_lim').value};if(G('ai_key')&&G('ai_key').value.trim())b.key=G('ai_key').value.trim();if(G('ai_pw'))b.password=G('ai_pw').value;
+    bt.disabled=true;try{aiCfgV=await api('PUT','/ai',b);aiEdit=false;err='';toast('✓ '+L('Saved'));render()}catch(e){bt.disabled=false;seterr(e.message)}};
+  if(G('ai_test'))G('ai_test').onclick=async function(){var bt=this;bt.disabled=true;bt.innerHTML='<span class="bspin"></span>'+L('Testing…');
+    try{await api('POST','/ai/test');err='';toast('✓ '+L('Gemini is working'))}catch(e){err=e.message}render()};
+}
+
 // ---- Push notifications on this phone ----
 // The phone subscribes with the server's public key; the server then sends a push for the same activities
 // that show under the bell (and the daily reminders). On iPhone it only works in the installed app.
@@ -2221,6 +2309,17 @@ var HGP=[
 [/^(.+) added · (.+)$/,'$1 ne joda · $2'],[/^(.+) owes you (₹[\d,.]+)$/,'$1 se lena hai $2'],
 [/^(.* · )?last (.+)$/,function(m,a,b){return (a||'')+'aakhri '+b}]
 ];
+// Ask Khata texts.
+(function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
+  add(HI,{'Ask Khata':'खाते से पूछें','💬 Ask Khata':'💬 खाते से पूछें','Ask about your money in English, Hindi or Hinglish':'अपने पैसों के बारे में हिंदी, अंग्रेज़ी या हिंग्लिश में पूछें','Type a question…':'सवाल लिखें…',
+    'Ask me anything about the business: totals, parties, users or changes.':'बिज़नेस के बारे में कुछ भी पूछें: कुल हिसाब, पार्टियां, यूज़र या बदलाव।','Ask me about your entries, parties and cash. I can also prepare a new entry for you to save.':'अपनी एंट्री, पार्टियों और नकद के बारे में पूछें। मैं नई एंट्री भी तैयार कर सकता हूं, जिसे आप सेव करें।',
+    '✓ Save':'✓ सेव करें','✎ Edit':'✎ बदलें','✓ Saved':'✓ सेव हो गई','🔍 See entries ›':'🔍 एंट्री देखें ›','🚨 Exception centre ›':'🚨 अपवाद केंद्र ›','Clear this chat?':'यह चैट मिटाएं?','Testing…':'टेस्ट हो रहा है…','Gemini is working':'Gemini चल रहा है',
+    '⚙️ Ask Khata settings':'⚙️ खाते से पूछें की सेटिंग','○ No Gemini key yet':'○ अभी Gemini की नहीं है','Gemini API key':'Gemini API की','Your password (to change the key)':'आपका पासवर्ड (की बदलने के लिए)','Model':'मॉडल','Questions per person per day':'हर व्यक्ति के रोज़ के सवाल','Test':'टेस्ट'});
+  add(HG,{'Ask Khata':'Khata se poochhein','💬 Ask Khata':'💬 Khata se poochhein','Ask about your money in English, Hindi or Hinglish':'Apne paison ke baare mein Hindi, English ya Hinglish mein poochhein','Type a question…':'Sawaal likhein…',
+    'Ask me anything about the business: totals, parties, users or changes.':'Business ke baare mein kuch bhi poochhein: total, parties, users ya badlav.','Ask me about your entries, parties and cash. I can also prepare a new entry for you to save.':'Apni entries, parties aur cash ke baare mein poochhein. Main nayi entry bhi taiyaar kar sakta hoon, jise aap save karein.',
+    '✓ Save':'✓ Save karein','✎ Edit':'✎ Badlein','✓ Saved':'✓ Save ho gayi','🔍 See entries ›':'🔍 Entries dekhein ›','🚨 Exception centre ›':'🚨 Exception centre ›','Clear this chat?':'Yeh chat mitayein?','Testing…':'Test ho raha hai…','Gemini is working':'Gemini chal raha hai',
+    '⚙️ Ask Khata settings':'⚙️ Khata se poochhein settings','○ No Gemini key yet':'○ Abhi Gemini key nahi hai','Gemini API key':'Gemini API key','Your password (to change the key)':'Aapka password (key badalne ke liye)','Model':'Model','Questions per person per day':'Har vyakti ke roz ke sawaal','Test':'Test'});
+})();
 // Exception centre texts.
 (function(){var add=function(D,o){for(var k in o)if(!(k in D))D[k]=o[k]};
   add(HI,{'Exception centre':'अपवाद केंद्र','🚨 Exception centre':'🚨 अपवाद केंद्र','Edits, deletes and anything unusual, by user':'बदलाव, हटाई एंट्री और कुछ भी असामान्य, यूज़र के हिसाब से','7 days':'7 दिन','30 days':'30 दिन',
@@ -2396,7 +2495,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='exc')excKey='';if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='exc')excKey='';if(b.dataset.m==='ask'){aiSet=false;aiEdit=false;aiCfgV=null}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
@@ -2417,6 +2516,7 @@ function bind(admin){
   if(tab==='ageing')bindAgeing(admin);
   if(tab==='perf'&&admin)bindPerf();
   if(tab==='exc'&&admin)bindExc();
+  if(tab==='ask')bindAsk(admin);
   fitNums();
   if(G('ag_go'))G('ag_go').onclick=function(){tab='ageing';agPid=null;render();window.scrollTo(0,0)};
   if(tab==='backup')bindBackup(admin);
