@@ -1533,7 +1533,7 @@ async function askSend(q){
   chat.push({role:'user',text:q});chatBusy=true;chatSave();render();askScroll();
   try{var r=await api('POST','/ai/chat',{lang:lang,messages:chat.filter(function(m){return !m.err}).slice(-12).map(function(m){return {role:m.role,text:m.text}})});
     chat.push({role:'model',text:r.text,draft:r.draft||null,parties:r.parties||[],search:r.search||null,exc:!!r.exc})}
-  catch(e){chat.push({role:'model',text:e.message,err:true})}
+  catch(e){chat.push({role:'model',text:e.status===504||e.status===502&&!/Gemini|key|limit|long/i.test(e.message)?L('That took too long. Try a shorter or simpler question.'):e.message,err:true})}
   chatBusy=false;chatSave();if(tab==='ask'){render();askScroll()}}
 function askScroll(){setTimeout(function(){window.scrollTo(0,document.body.scrollHeight)},30)}
 function bindAsk(admin){
