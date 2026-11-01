@@ -1554,7 +1554,7 @@ function bindAsk(admin){
     r.onerror=function(){micOn=null;render()};r.onend=function(){micOn=null;if(tab==='ask'&&!chatBusy)render()};try{r.start()}catch(e){micOn=null;render()}};
   // Admin settings
   if(G('ai_unlock'))G('ai_unlock').onclick=function(){aiEdit=true;err='';render();G('ai_key').focus()};
-  if(G('ai_save'))G('ai_save').onclick=async function(){var bt=this,b={model:G('ai_model').value,limit:+G('ai_lim').value};if(G('ai_key')&&G('ai_key').value.trim())b.key=G('ai_key').value.trim();if(G('ai_pw'))b.password=G('ai_pw').value;
+  if(G('ai_save'))G('ai_save').onclick=async function(){var bt=this,b={model:G('ai_model').value,limit:+G('ai_lim').value};if(G('ai_key')&&G('ai_key').value.trim())b.key=G('ai_key').value.replace(/\s+/g,'');if(G('ai_pw'))b.password=G('ai_pw').value;
     bt.disabled=true;try{aiCfgV=await api('PUT','/ai',b);aiEdit=false;err='';toast('✓ '+L('Saved'));render()}catch(e){bt.disabled=false;seterr(e.message)}};
   if(G('ai_test'))G('ai_test').onclick=async function(){var bt=this;bt.disabled=true;bt.innerHTML='<span class="bspin"></span>'+L('Testing…');
     try{await api('POST','/ai/test');err='';toast('✓ '+L('Gemini is working'))}catch(e){err=e.message}render()};
