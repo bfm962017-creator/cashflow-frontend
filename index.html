@@ -476,7 +476,7 @@ async function api(m,u,b){
 }
 function signout(){
   var tk=token;if(tk&&pushOk())pushSub().then(function(x){if(x)fetch(API+'/api/push/unsubscribe',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tk},body:JSON.stringify({endpoint:x.endpoint})}).catch(function(){})}).catch(function(){});
-  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;chat=null;chatBusy=false;aiCfgV=null;aiSet=false;aiEdit=false;if(micOn){try{micOn.stop()}catch(e){}micOn=null}exc={p:'7',from:'',to:'',user:'all',cat:'all'};excData=null;excKey='';driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
+  pushSt=null;pushPrefsV=null;menu=false;ag={dir:'get',bk:null,user:'all'};agPid=null;chat=null;chatBusy=false;aiModels=null;aiCfgV=null;aiSet=false;aiEdit=false;if(micOn){try{micOn.stop()}catch(e){}micOn=null}exc={p:'7',from:'',to:'',user:'all',cat:'all'};excData=null;excKey='';driveCfg=null;driveScr=false;driveEdit=false;perf={p:'month',from:'',to:'',sort:'in',u:null};perfChg=null;perfKey='';sq='';sdr='all';suser='all';ctxs=[];transfers=[];peers=[];trf=null;puser=null;parties=[];partyId=null;psheet=null;pseg='users';fuser='all';tab='tx';sheet=null;bform=null;bdirty=false;biz={};bizLogo=null;bizV=-1;activity=[];seenAt=0;badge(0);document.body.style.overflow='';token=null;sset(null);me=null;users={};txs=[];form=null;err='';render()}
 async function load(){var d=await api('GET','/data');rev=d.rev;me=d.me.name;users=d.users;txs=d.txs;activity=d.activity||[];seenAt=Math.max(seenAt,d.seenAt||0);
   parties=d.parties||[];ctxs=d.ctxs||[];transfers=d.transfers||[];peers=d.peers||[];photoBytes=d.photoBytes;biz=d.biz||{};if(biz.v!==bizV){bizLogo=null;if(biz.hasLogo){try{bizLogo=(await api('GET','/settings')).logo}catch(e){}}bizV=biz.v}}
 async function reload(){await load();render()}
@@ -1485,7 +1485,7 @@ function bindExc(){
 // ---- Ask Khata: chat with your cash book (Google Gemini through the server) ----
 // The chat is kept on this phone only (per signed-in person). The server answers from the books with
 // the person's own permissions; a proposed entry is saved only when they tap Save here.
-var chat=null,chatBusy=false,aiCfgV=null,aiSet=false,aiEdit=false,micOn=null;
+var chat=null,chatBusy=false,aiModels=null,aiCfgV=null,aiSet=false,aiEdit=false,micOn=null;
 function chatKey(){return 'cf_chat_'+me}
 function chatLoad(){if(chat)return;chat=[];try{chat=JSON.parse(localStorage.getItem(chatKey())||'[]')||[]}catch(e){chat=[]}}
 function chatSave(){try{localStorage.setItem(chatKey(),JSON.stringify(chat.slice(-40)))}catch(e){}}
@@ -1507,7 +1507,9 @@ function aiSettingsHtml(){
   if(!c.hasKey)h+='<ol class="msteps"><li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener"><b>aistudio.google.com/apikey</b> ↗</a> and sign in with Google</li><li>Tap <b>Create API key</b> (free, no card needed)</li><li>Copy the key, paste it below and tap <b>Save</b></li></ol>';
   if(!c.keyFromEnv){if(c.hasKey&&!aiEdit)h+='<label class="fl">Gemini API key</label><div class="dvlk"><span>🔒 '+esc(c.keyHint)+'</span><button class="sm" id="ai_unlock">Change</button></div>';
     else h+='<label class="fl" for="ai_key">Gemini API key</label><input id="ai_key" type="password" autocomplete="off" placeholder="AIza…">'+(c.hasKey?'<label class="fl" for="ai_pw">Your password (to change the key)</label><input id="ai_pw" type="password" autocomplete="current-password">':'')}
-  h+='<label class="fl" for="ai_model">Model</label><select id="ai_model">'+c.models.map(function(m){return '<option'+(c.model===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select>'+
+  if(c.hasKey&&aiModels===null){aiModels=false;api('GET','/ai/models').then(function(r){aiModels=r.models||[];if(tab==='ask')render()}).catch(function(){aiModels=[]})}
+  var ml=(aiModels||c.models).slice();if(ml.indexOf(c.model)<0)ml.unshift(c.model);
+  h+='<label class="fl" for="ai_model">Model'+(aiModels===false?' <small class="mut">(loading list from Google…)</small>':'')+'</label><select id="ai_model">'+ml.map(function(m){return '<option'+(c.model===m?' selected':'')+'>'+m+'</option>'}).join('')+'</select>'+
     '<label class="fl" for="ai_lim">Questions per person per day</label><input id="ai_lim" type="number" inputmode="numeric" min="5" max="500" value="'+c.limit+'">'+
     '<div class="err" id="e">'+esc(err)+'</div><div class="bbtn"><button class="lt" id="ai_test"'+(c.hasKey?'':' disabled')+'>Test</button><button class="p" id="ai_save">Save</button></div>'+
     '<p class="mut" style="font-size:12px;margin:10px 0 0">ℹ️ Free Gemini has a daily limit. On the free plan Google may use what is sent to improve its products. Ask Khata sends only each question and the few numbers needed to answer it, never your whole books.</p></div>';
@@ -1557,7 +1559,8 @@ function bindAsk(admin){
   if(G('ai_save'))G('ai_save').onclick=async function(){var bt=this,b={model:G('ai_model').value,limit:+G('ai_lim').value};if(G('ai_key')&&G('ai_key').value.trim())b.key=G('ai_key').value.replace(/\s+/g,'');if(G('ai_pw'))b.password=G('ai_pw').value;
     bt.disabled=true;try{aiCfgV=await api('PUT','/ai',b);aiEdit=false;err='';toast('✓ '+L('Saved'));render()}catch(e){bt.disabled=false;seterr(e.message)}};
   if(G('ai_test'))G('ai_test').onclick=async function(){var bt=this;bt.disabled=true;bt.innerHTML='<span class="bspin"></span>'+L('Testing…');
-    try{await api('POST','/ai/test');err='';toast('✓ '+L('Gemini is working'))}catch(e){err=e.message}render()};
+    try{var r=await api('POST','/ai/test');err='';toast('✓ '+L('Gemini is working')+(r.model?' · '+r.model:''))}catch(e){err=e.message}
+    try{aiCfgV=await api('GET','/ai')}catch(e){}render()};
 }
 
 // ---- Push notifications on this phone ----
@@ -2495,7 +2498,7 @@ function bind(admin){
   G('menu').onclick=function(){openMenu('menu')};
   G('bell').onclick=openNotif;
   $('[data-close]').forEach(function(b){b.onclick=closeMenu});
-  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='exc')excKey='';if(b.dataset.m==='ask'){aiSet=false;aiEdit=false;aiCfgV=null}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
+  $('[data-m]').forEach(function(b){b.onclick=function(){if(tab==='settings'&&bdirty&&b.dataset.m!=='settings'&&!confirm(L('Discard unsaved settings?')))return;if(b.dataset.m==='lock')lockSel=null;if(b.dataset.m==='mail')mailCfg=null;if(b.dataset.m==='drive'){driveCfg=null;driveScr=false;driveEdit=false}if(b.dataset.m==='deleted')delList=undefined;if(b.dataset.m==='ageing')agPid=null;if(b.dataset.m==='perf'){perf.u=null;perfKey=''}if(b.dataset.m==='exc')excKey='';if(b.dataset.m==='ask'){aiSet=false;aiEdit=false;aiCfgV=null;aiModels=null}if(b.dataset.m==='push'){pushSt=null;pushPrefsV=null}tab=b.dataset.m;err='';sheet=null;bform=null;bdirty=false;closeMenu();window.scrollTo(0,0)}});
   $('[data-t]').forEach(function(b){b.onclick=function(){if(b.dataset.t==='books'){partyId=null;puser=null}tab=b.dataset.t;err='';render()}});
   $('[data-p]').forEach(function(b){b.onclick=function(){period=b.dataset.p;render()}});
   var goS=function(){tab='search';sfocus=true;err='';render();window.scrollTo(0,0)};G('srch').onclick=goS;if(G('sbtn'))G('sbtn').onclick=goS;
